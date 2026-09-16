@@ -515,7 +515,7 @@ Payload blocked by WAF?
 
 > **为什么必须补这一节**：本文件 §1~§7 的矩阵（Cloudflare / AWS / ModSecurity / Akamai / Imperva / F5 / Sucuri）**清一色是国外产品**。而面向国内 SRC / EDUSRC 时，**遇到最多的是国产防护**，此前**零覆盖**。这是本文件最大的结构性缺口。
 
-### 9.1 识别（单请求可判，2026-09-16 实测样本 `mcoa.swu.edu.cn`）
+### 9.1 识别（单请求可判，2026-09-16 实测样本 `mcoa.**.edu.cn`）
 
 一次 `GET /` 就能认，**不需要发包攻击**：
 
@@ -538,9 +538,9 @@ Payload blocked by WAF?
 
 ### 9.3 顺带一条实测结论：国产网关倾向「抹掉」Server 头
 
-2026-09-16 两轮批量实测（226 个教育资产 + 234 个高校统一认证 / WebVPN 资产），**字面量 `Server: none` 累计 48 站**（第一轮 20 + 第二轮 28），横跨北师大 / 复旦 / 泛微系 / 瑞数防护站 / **网瑞达 WebVPN** / 金智统一认证 / 正方 / CAS 系，另有 `Server: Server`、`Server: *****`、`Server` 后接一长串空格等变体。**这跟 Cloudflare/Akamai「大方报自己名字」的行为完全相反。**
+2026-09-16 两轮批量实测（226 个教育资产 + 234 个高校统一认证 / WebVPN 资产），**字面量 `Server: none` 累计 48 站**（第一轮 20 + 第二轮 28），横跨两所高校 / 泛微系 / 瑞数防护站 / **网瑞达 WebVPN** / 金智统一认证 / 正方 / CAS 系，另有 `Server: Server`、`Server: *****`、`Server` 后接一长串空格等变体。**这跟 Cloudflare/Akamai「大方报自己名字」的行为完全相反。**
 
-⚠️ **但别把它当单一产品的判据**：实测 48 站分属**多个不同系统**（泛微 e-cology、瑞数、**网瑞达 WebVPN**、金智统一认证、正方、CAS 系、复旦 / 上外 / 人大自研），说明它是**某几类网关的通用默认配置**，不是某一家独有。**只能读作「有网关介入」。**
+⚠️ **但别把它当单一产品的判据**：实测 48 站分属**多个不同系统**（泛微 e-cology、瑞数、**网瑞达 WebVPN**、金智统一认证、正方、CAS 系、多所高校自研），说明它是**某几类网关的通用默认配置**，不是某一家独有。**只能读作「有网关介入」。**
 
 推论（对打法有直接影响）：**面对国内目标，「特征匹配法」经常失效，「行为指纹法」（§1.2 那套 baseline → 攻击 → 比对）才是主力**。见到 Server 头被抹成字面量/星号/空格 → 判为「有网关或防护介入」，别当「无 Server 头」。
 
@@ -550,9 +550,9 @@ Payload blocked by WAF?
 
 | 产品 | 识别判据（单请求可判，不用发攻击载荷） | 实测样本 | 阻断形态 |
 |---|---|---|---|
-| **瑞数 Botgate** | `412` + 正文含 `$_ts`（`$_ts.nsd`/`$_ts.cd`）+ 随机名 cookie + 标签属性 `r='m'` | `mcoa.swu.edu.cn`、`coa.swu.edu.cn`、`oa.cse.edu.cn` | **412** + JS 挑战页 |
-| **华为云 WAF** | **`Server: CloudWAF`** + `Set-Cookie: HWWAFSESID` / `HWWAFSESTIME` + 正文 `The access is blocked.` + `requestid` 形如 `32-0000-0000-0000-<时间戳>-<hex>` | `oa.xjmu.edu.cn` | **418**（非标准码）+ 拦截页 |
-| **`wengine` 认证准入网关**（**2026-09-16 确证厂商 = 北京网瑞达科技** `wrdtech.com`，与 WebVPN 同一家，`wengine` 是其产品代号） | **`488`** + title「访问出错 - 488」+ 正文引用 `/wengine-auth-failed.png` + `Server: none` | `oa.gypec.edu.cn`、`moa.gypec.edu.cn`、`oaem.swfu.edu.cn` | **488** + 认证失败页 |
+| **瑞数 Botgate** | `412` + 正文含 `$_ts`（`$_ts.nsd`/`$_ts.cd`）+ 随机名 cookie + 标签属性 `r='m'` | `mcoa.**.edu.cn`、`coa.**.edu.cn`、`oa.**.edu.cn` | **412** + JS 挑战页 |
+| **华为云 WAF** | **`Server: CloudWAF`** + `Set-Cookie: HWWAFSESID` / `HWWAFSESTIME` + 正文 `The access is blocked.` + `requestid` 形如 `32-0000-0000-0000-<时间戳>-<hex>` | `oa.**.edu.cn` | **418**（非标准码）+ 拦截页 |
+| **`wengine` 认证准入网关**（**2026-09-16 确证厂商 = 北京网瑞达科技** `wrdtech.com`，与 WebVPN 同一家，`wengine` 是其产品代号） | **`488`** + title「访问出错 - 488」+ 正文引用 `/wengine-auth-failed.png` + `Server: none` | `oa.**.edu.cn`、`moa.**.edu.cn`、`oaem.**.edu.cn` | **488** + 认证失败页 |
 
 **⭐ 本轮最重要的一条通用规律：国产防护爱用「非标准状态码」做阻断。**
 
@@ -566,10 +566,10 @@ Payload blocked by WAF?
 → **见到 4xx 里「不像标准码」的（412/418/488…），先按「有防护」处理，别当成「站点异常」。**
 
 **发现但尚未确证的（只记录，不入表）**：
-- `SF_cookie_32` cookie → 深信服（Sangfor）系（`bhmoa.qdbhu.edu.cn`）；同类 `sauth` cookie 亦指向深信服认证产品
+- `SF_cookie_32` cookie → 深信服（Sangfor）系（`bhmoa.**.edu.cn`）；同类 `sauth` cookie 亦指向深信服认证产品
 - `acw_tc` cookie → 阿里云 SLB / CDN
 - `route` cookie → Spring Cloud Gateway（说明前面挂了网关）
-- **`Server: none`（实测累计 48 站）→ 不是单一产品**：在泛微、瑞数、`wengine` 网关、复旦系自研、上外、人大上都出现。**只能读作「有网关介入」，不能当任何单一产品的判据**（`*****` / 长空格同理）
+- **`Server: none`（实测累计 48 站）→ 不是单一产品**：在泛微、瑞数、`wengine` 网关、多所高校自研上都出现。**只能读作「有网关介入」，不能当任何单一产品的判据**（`*****` / 长空格同理）
 - **⚠️ 例外修正（2026-09-16 第五轮）：`Server: Server` 反而能当指纹用**。与 `none` 不同，**`Server: Server` 实测 100% 落在 WebVPN 上**（清一色 `vpn.*` / `*.vpn.*` 域名），第五轮进一步确认其中 6 站是**同一款国产 SSL VPN**（硬判据：`/com/64sys.js` + `<!-- 旧方案 -->` / `<!-- 新方案 -->` 注释 + JS 变量 `is_old_solution` / `g_midatk`）。**看到 `Server: Server` 可直接往「WebVPN」方向判** —— 这是少数「值被写错反而成为指纹」的特例
 
 **仍未确证、保持空白的**：长亭雷池 / 安恒明御 / 知道创宇创宇盾 / 腾讯云 WAF / 安全狗 / 云锁。

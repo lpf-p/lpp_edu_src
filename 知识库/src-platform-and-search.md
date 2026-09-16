@@ -12,7 +12,7 @@
 
 | 指令 | 用途 | 示例 |
 |---|---|---|
-| `site:` | 限定站点 | `site:sus.edu.cn` |
+| `site:` | 限定站点 | `site:<目标域>` |
 | `filetype:` / `ext:` | 限定文件类型 | `site:x.edu.cn filetype:xlsx` |
 | `inurl:` / `allinurl:` | URL 含词 | `inurl:admin`、`inurl:api` |
 | `intitle:` / `allintitle:` | 标题含词 | `intitle:"index of"` |
