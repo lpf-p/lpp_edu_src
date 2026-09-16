@@ -26,6 +26,6 @@ python tools/follow_redirects.py ./sweep_out/result.tsv --raw-dir ./sweep_out/_r
 
 1. **认入口类必须跟一跳，但跟一跳不充分**：44% 增益后，仍零命中的站第二步打 `/login`、`/cas/login`、`/sso` 常见路径与 JS 引用。
 2. **Set-Cookie 名在 302 上就要扫**（`wengine_vpn_ticket*` 在跳转响应上就出现，别等落地页）。
-3. 同名陷阱：cookie `Sharetop.ClientId/.Session` 是某 Web 应用框架判据，与深圳 Sharetop（光通信）无关；`Server: ******`（通配屏蔽）+ `*.webvpna.lzu.edu.cn` 域名模式 = 兰州大学 WebVPN 指纹。
+3. 同名陷阱：cookie `Sharetop.ClientId/.Session` 是某 Web 应用框架判据，与深圳 Sharetop（光通信）无关；`Server: ******`（通配屏蔽）+ `*.webvpna.**.edu.cn` 域名模式 = 某高校 WebVPN 指纹。
 
 判据来源与完整打法表：`知识库/recon-fingerprint-cdn-wildcard.md` §1.3。
