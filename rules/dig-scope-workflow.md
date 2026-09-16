@@ -599,6 +599,14 @@ curl -s "https://<host>/" | grep -oE 'src="[^"]+"' | head
 1. **别只看 Location，要读 3xx 响应体**。不少后台**先把页面 HTML 渲染进 body、再发 302 跳 /login**——浏览器自动跳走看不到，但 body 已随包发出。对 `/admin/`、`/manage/`、`/backend/`、`/sys/` 等路径发单个 GET，**直接读 301/302 的 body**：含「后台管理中心 / 管理员登录 / 重置管理员密码」等字样即命中 `未授权后台泄露`（详见 `rules/test-scope-boundary.md` §四/§八）。本技能 `follow_redirects.py` 默认只跟 `sz<300` 的纯跳转，**这种大 body 的 302 会被它跳过**——要确认须用 `fingerprint_markers.classify` 直接扫保存的 `_raw` body，或单独 GET 后读 body。
 2. **307/308 保留原请求方法，301/302 默认转 GET**。手动构造重放/续探时别弄错方法（尤其 POST 登录类接口遇到 307/308 要保持 POST，否则被服务端当 GET 处理而失败）。
 
+**路径 / 敏感文件发现靠被动源，不靠目录爆破（2026-09-16 吸收）**：网上教程常让用 Dirsearch/Gobuster/ffuf 扫几万个路径——**那违反本技能「禁止目录爆破」红线，不做**。合规的发现路径：
+- **优先读 `robots.txt` / `sitemap.xml`**（单 GET）—— 常直接指到后台、管理、敏感目录；
+- **JS 源码**：`env.js` / `baseURL` / `apiHost` / `/prod-api` 暴露前后端路径与 admin/api 子域；
+- **页面 HTML 注释**与 **README / 部署说明 / 初始化文档**（若目录列表或静态可访问）；
+- **证书透明日志 `crt.sh`**：反查 `*.edu.cn` 子域，定位 `admin`/`vpn`/`api`/`oss` 等主机；
+- **已知文件名单次 GET**：`.env` / `.DS_Store` / `web.bak` / `phpinfo.php` / `swagger.json` 这类定点确认是可做的，**「猜几万个路径」不可做**。
+命中后按 `rules/test-scope-boundary.md` §三/§八 的边界确认与报告（目录列表/Debug/.env 多一次 GET 即可，绝不复制密钥、不批量下载）。
+
 **⚠️ 第 0 步必须同时判「有没有防护」（2026-09-16 实测补）**：国内目标的防护**经常在基线请求阶段就把你挡在外面**，不先判会白跑一轮。
 
 | 见到 | 判为 | 处置 |

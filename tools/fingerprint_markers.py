@@ -87,6 +87,11 @@ SUBSTR = [
     ("/wui/", "泛微 · /wui/", True),
     ("atrust", "深信服 aTrust", False),
     ("Sangfor", "深信服", True),
+    # 配置错误类信息泄露（单 GET / 被动可确认；详见 rules/test-scope-boundary.md §三/§八）
+    ("<title>Index of", "目录列表 · Index of", False),
+    ("Traceback (most recent call last)", "Debug泄露 · 堆栈跟踪", False),
+    ("SECRET_KEY", "Debug泄露 · SECRET_KEY", False),
+    ("phpinfo()", "信息泄露 · phpinfo", False),
     # 未授权后台泄露（3xx/2xx 响应体含后台页面 —— 后置鉴权缺陷，body 已随包发出）
     ("重置管理员密码", "未授权后台泄露 · 管理员密码重置", False),
     ("找回管理员密码", "未授权后台泄露 · 管理员密码找回", False),
