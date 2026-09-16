@@ -23,6 +23,7 @@ lpp_edu_src/
 ├── SKILL.md                    # 入口：路由 + 红线 + 规则速查表
 ├── rules/                      # 12 份运行时规则（原 ~/.grok/rules/ + 1 份新增）
 ├── 知识库/                     # 专题手法（原 skills/skill/知识库/）
+├── tools/                      # 批量探根 / 指纹分类 / 跟一跳验证脚本（判据表外置 fingerprint_markers.py）
 └── reference/                  # 仅存档，不参与运行
     └── grok-config.toml        # 原 Grok config.toml（MCP 定义参考）
 ```
