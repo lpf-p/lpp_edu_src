@@ -1,5 +1,5 @@
 ---
-name: lpp_edu_src
+name: src-6k-hunting
 description: "SRC 漏洞挖掘 + 白盒 0day 审计全流程技能。覆盖国内大厂、中小企业、政府/教育/医疗等目标类型。包含：JS 逆向接口发现、越权/注入/逻辑漏洞测试、WAF 绕过、自由跳资产测绘（FOFA）、白盒代码审计（Linux Kernel/Chromium/Laravel/Spring/Django）、中文 SRC 报告生成。当用户提到以下任意关键词时必须触发：SRC、漏洞挖掘、渗透测试某个网站/平台/APP、白帽子测试、找漏洞、挖 src、挖 SRC、挖某集团、挖某某（「挖」后面跟集团/品牌名，没给 URL 也算）、JS 逆向找接口、越权测试、WAF 绕过、写漏洞报告、代码审计、0day、白盒审计、源码审计、审计这个项目。即使用户只说「帮我测一下这个站」或「这个平台有没有漏洞」也要触发。用户说「挖」+ 任何集团/品牌名：起手短表 + 自由跳。磁盘有 `*src经验.md` 才开专篇，没有不算缺。"
 agent_created: true
 ---
@@ -20,10 +20,10 @@ agent_created: true
 ## 本技能根目录
 
 ```
-~/.workbuddy-ai/skills/lpp_edu_src
+C:/Users/36193/.workbuddy-ai/skills/src-6k-hunting
 ```
 
-下文所有 `rules/xxx.md`、`知识库/xxx.md` 引用均**相对本目录**。
+下文所有 `rules/xxx.md`、`知识库/xxx.md` 引用均**相对本目录**。批量探测脚本在 `tools/`（探根 / 分类 / 跟一跳验证，判据表外置）。
 
 ## 启动必读（按顺序）
 
@@ -31,8 +31,9 @@ agent_created: true
 
 1. **进站前先读** `rules/dig-scope-workflow.md`（锁面/自由跳全流程，819 行，最重要的一份）与 `rules/src-value-hunting.md`（挖什么）。
 2. **写报告前读** `rules/vuln-report-format.md`（报告版式唯一来源，含 §三 EDUSRC 特别条款）。
-3. **落盘前读** `rules/desktop-task-folder.md`（任务目录约定）。
-4. **批量目标（多资产 / 模式库全量过 / 别人给的 N 份报告 zip）先读** `rules/batch-verify-discipline.md`（假阳性控制 + 批量报告鉴定）。
+3. **动手前查** `rules/test-scope-boundary.md`（各类漏洞最大测试范围与停止线：测到哪算到底、越过就出事）。
+4. **落盘前读** `rules/desktop-task-folder.md`（任务目录约定）。
+5. **批量目标（多资产 / 模式库全量过 / 别人给的 N 份报告 zip）先读** `rules/batch-verify-discipline.md`（假阳性控制 + 批量报告鉴定）。
 5. 其余 rules 按需读，见下方速查表。
 
 ## 规则速查表（短名 → 文件）
@@ -53,6 +54,8 @@ agent_created: true
 | `cors-vuln-report-priority` | `rules/cors-vuln-report-priority.md` | CORS：不挖 |
 | `batch-verify` / `batch-verify-discipline` | `rules/batch-verify-discipline.md` | **批量探测假阳性控制 + 批量报告鉴定**（多资产/模式库全量过时必读） |
 | `playwright-browser-mcp` | `rules/playwright-browser-mcp.md` | 浏览器走 `agent-browser` |
+| `test-scope-boundary` / `test-scope` | `rules/test-scope-boundary.md` | **各类漏洞的最大测试范围与停止线**（动手前查：测到哪算到底、越过就出事；含 EDUSRC 不挖清单） |
+| `sweep-tools` | `tools/README.md` | **批量探根 / 指纹分类 / 跟一跳验证脚本**（判据表外置 `tools/fingerprint_markers.py`；认入口类资产必配，纪律：只 GET、不带凭据、限 4 跳） |
 
 冲突时：挖什么 → `src-value`；报告 → 只跟 `vuln-report-format`；CORS 不挖 → `cors-vuln-report-priority`；白盒 → `researcher-blackbox-whitebox`；**范围/持续挖** → **`dig-scope-workflow`（压过「等继续」）**；**批量探测判据** → `batch-verify-discipline`；**能力迭代落盘** → `hunt-iter`（不压过范围）。
 **skill / 知识库** 与 rules 冲突 → **以 rules 为准**（尤其 `知识库/cors-test.md` 仅资料、SRC 禁用）。
