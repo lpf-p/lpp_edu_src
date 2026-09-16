@@ -1,56 +1,124 @@
 > **免责声明**：本仓库内容整理自公开安全研究资料与 SRC 实战沉淀，仅供**已授权**的安全测试、SRC 漏洞挖掘与防御研究学习使用。
 > 严禁用于任何未授权目标或违法用途；使用者须自行遵守所在地法律法规与目标平台授权范围，一切后果由使用者自行承担。
 
-# lpp_edu_src — 移植说明
+# lpp_edu_src
 
-从 Grok Build 身份包 `clown-src-6k-skill` 移植到 WorkBuddy 的 SRC 挖洞技能。
+SRC 挖洞 + 白盒 0day 审计的技能包（WorkBuddy skill 格式）。
 
-## 来源
+---
 
-| 项 | 值 |
+## 一、它是做什么的
+
+一句话：**把「挖什么 → 怎么挖 → 怎么写成能过审的报告」这套流程固化成可复用的规则与知识库**，让 Agent 接手后按流程跑，而不是每次临时发挥。
+
+### 三块能力
+
+| 能力 | 解决什么问题 |
 |---|---|
-| 源包 | `D:\src_tools\skill\clown-src-6k-skill`（原始版，规则完整） |
-| 参考包 | `D:\src_tools\skill\src-6k-security-research-skills-main`（第三方 jiker666 重构版，仅取其 fofa_MCP 补丁） |
+| **黑盒 SRC 挖洞**（主） | 给一个目标（集团名 / 域名 / URL），从资产测绘、指纹识别、按目标特征选打法，一路做到落报告 |
+| **白盒 0day 审计** | 给一份源码（Linux Kernel / Chromium / Laravel / Spring / Django 等），按 Phase 0～6 找开发者认知盲区 |
+| **实战案例知识库** | 91 份专题文档，其中 18 份是 ima 案例库 1300+ 份真实报告的去重提炼——不是教程，是「别人真交过、真收了」的打法 |
 
-> 注：两个包原位于 `D:\src_tools\` 根下，2026-09-13 19:41 被移入 `D:\src_tools\skill\` 子目录。
-| 移植日期 | 2026-09-13 |
-| 目标 | `~/.workbuddy-ai/skills/lpp_edu_src`（用户主目录下，各机器按各自用户名放置） |
+### 它特别适合的场景
 
-## 目录结构
+- **教育行业 / EDUSRC**：统一身份认证（金智 wisedu）、WebVPN（网瑞达）、图书馆资源代理（创文 ERMS）等入口类资产有专门的指纹判据与打法表
+- **模糊目标**：只知道集团名、没有 URL 清单 —— 有「自由跳」节奏规则，自己找资产边找边挖
+- **批量目标**：多资产 / 一份 zip 几十份报告要鉴定 —— 有假阳性控制规则 + 批量探根脚本
+
+### 它不是什么（重要）
+
+- ❌ **不是扫描器**：不自动扫漏洞，`nuclei` 只在需要已知 CVE 时当辅助，禁止「全量模板扫一遍」当进度
+- ❌ **不捆绑任何 key**：不依赖 fofa MCP，FOFA 语法在 fofa.info 网页手动跑；无配额时走 DNS+HTTP+crt 活筛兜底
+- ❌ **不替代判断**：知识库给的是「这类目标通常打什么」，具体打不打、打没打中，仍要现场取证
+
+---
+
+## 二、怎么用
+
+### 安装
+
+放到用户主目录的 skills 下（各机器按各自用户名）：
+
+```
+~/.workbuddy-ai/skills/lpp_edu_src
+```
+
+放好即可，无需配置、无需 key。
+
+### 触发
+
+技能自动匹配。说这些就会命中：
+
+> `挖 xxx 集团` / `帮我测一下这个站` / `这个平台有没有漏洞` / `挖 src` / `越权测试` / `JS 逆向找接口` / `WAF 绕过` / `写漏洞报告` / `代码审计` / `审计这个项目`
+
+注意：**「挖」后面跟集团/品牌名，没给 URL 也算** —— 会走自由跳流程自己找资产。
+
+### 一次任务的流程
+
+| 步 | 做什么 | 对应文件 |
+|---|---|---|
+| 0 | **授权与范围**：确认目标在 SRC 公布范围内 / 自有资产 / 有书面授权。三者都不成立就停 | `rules/security-research-context.md` |
+| 1 | **资产测绘**：起手落盘种子队列（业务名 + SRC 范围域 + 全资子公司域，禁止只有一条）；一种子闭环，挖完再换 | `rules/dig-scope-workflow.md` §1.0.1 |
+| 2 | **进站指纹**：每个种子都要过 —— 认指纹 / 判 CDN / 判泛解析。**不做这一步就开打 = 闭眼扔飞镖** | `知识库/recon-fingerprint-cdn-wildcard.md` |
+| 3 | **选模块打**：按目标特征查 `SKILL.md` 的「对得上再开」表，命中哪个开哪个文件 | `知识库/*.md`（见 `SKILL.md` 知识库目录表） |
+| 4 | **落报告**：中危及以上确认即落 `报告/` | `rules/vuln-report-format.md` |
+
+### 三条最容易用歪的纪律
+
+1. **规则不会自动加载。** Grok 版会把 `~/.grok/rules/` 全部常驻，WorkBuddy 只加载 `SKILL.md`。所以 `SKILL.md` 里列了「启动必读」清单 —— **进站前**读 `dig-scope-workflow.md` + `src-value-hunting.md`，**写报告前**读 `vuln-report-format.md`。不读 = 技能只加载了个目录。
+2. **自由跳不许停工问。** 模糊目标且用户没叫停时，禁止问「要不要继续？」「其他品牌要不要也挖？」。一轮搜完 ≠ 任务结束，种子队列还有 pending 就不能以问句收尾。
+3. **报告版式只有一个来源。** 正式报告只认 `rules/vuln-report-format.md`（含 EDUSRC 特别条款），不要用自己习惯的模板。
+
+### tools/ 批量脚本（可选）
+
+入口类资产（统一认证 / WebVPN / 资源代理）批量识别三步。判据表外置在 `fingerprint_markers.py`，加新指纹只改这一个文件。
+
+```bash
+# 1) 探根：hosts.txt 每行一个 host 或 host:port → result.tsv + _raw/
+python tools/probe_roots.py hosts.txt --out-dir ./sweep_out
+
+# 2) 分类：出统计报告（特征命中 / Server 分布 / Cookie 分布 / 厂商归属 / 未定性清单）
+python tools/classify_results.py ./sweep_out/result.tsv --raw-dir ./sweep_out/_raw --top 30
+
+# 3) 跟一跳：挑 root 301/302 且体积 <300 的站跟跳（≤4 次）后重新分类
+#    实测：root 未定性的站跟一跳后 44% 直接拿到判据
+python tools/follow_redirects.py ./sweep_out/result.tsv --raw-dir ./sweep_out/_raw --max 30 --out follow_report.txt
+```
+
+纪律：**只发 GET、不带凭据、不爆破、不碰利用**，目标必须是已授权范围内的资产。详见 `tools/README.md`。
+
+---
+
+## 三、目录结构
 
 ```
 lpp_edu_src/
-├── SKILL.md                    # 入口：路由 + 红线 + 规则速查表
-├── rules/                      # 12 份运行时规则（原 ~/.grok/rules/ + 1 份新增）
-├── 知识库/                     # 专题手法（原 skills/skill/知识库/）
-├── tools/                      # 批量探根 / 指纹分类 / 跟一跳验证脚本（判据表外置 fingerprint_markers.py）
+├── SKILL.md                    # 入口：路由表 + 红线 + 规则速查表（唯一自动加载的文件）
+├── rules/                      # 12 份运行时规则（流程与纪律，不常驻，按「启动必读」主动读）
+├── 知识库/                     # 91 份专题：打法 + 案例库提炼 + 厂商系统速查
+├── tools/                      # 批量探根 / 指纹分类 / 跟一跳验证脚本（判据表外置）
 └── reference/                  # 仅存档，不参与运行
-    └── grok-config.toml        # 原 Grok config.toml（MCP 定义参考）
 ```
 
-## 做了什么改动
+**rules 与 知识库 的分工**：rules 管「流程与纪律」（怎么排队、什么时候换资产、报告什么版式），知识库管「具体怎么打」（这类目标打什么、payload 长什么样）。两者冲突时 **以 rules 为准**。
 
-1. **路径改写**：16 处 `~/.grok/...` 硬编码引用全部改写为本技能根目录绝对路径。
-   - `~/.grok/rules/` → `<root>/rules/`
-   - `~/.grok/skills/skill/知识库/` → `<root>/知识库/`
-   - `~/.grok/mcp-servers/` → `<root>/mcp-servers/`
-   - `~/.grok/config.toml` → `~/.workbuddy-ai/mcp.json`
-2. **浏览器规则重写**：`rules/playwright-browser-mcp.md` 从 Grok 双槽 Playwright MCP 改为 WorkBuddy 内置 `agent-browser` 技能。
-3. **修复源包缺陷**：`rules/researcher-blackbox-whitebox.md` 原文件**头部 1–43 行被 `playwright-browser-mcp.md` 内容整段覆盖**，导致白盒 Phase 0 与表格前两行丢失（第 44 行只剩 `） | 不可信输入最密集 |` 残片）。本版已移除重复块并重建 Phase 0。
-   - 已**同时回修源包** `D:\src_tools\skill\clown-src-6k-skill\rules\researcher-blackbox-whitebox.md`，原损坏件备份为 `researcher-blackbox-whitebox.md.bak-head-clobbered`。
-   - D1 重构包的归档副本 `docs/legacy-rules/researcher-blackbox-whitebox.md` **仍是坏的**（未改动，保持第三方原件原样）。
-4. **FOFA 资产搜索改为网页手动跑**：本技能**不捆绑 fofa MCP、不要求任何 key**。把案例库里的 FOFA 语法直接抄进 fofa.info 搜索框即可；无配额时走 `dig-scope` §2.1.4 的 DNS+HTTP+crt 活筛兜底。（原 jiker666 重构版的 fofa_MCP 补丁已不再随包分发。）
+---
 
-## 规则加载机制差异（重要）
+## 四、红线
 
-Grok 把 `~/.grok/rules/*.md` **全部常驻**进上下文；WorkBuddy 只加载 `SKILL.md`。
-因此 `SKILL.md` 里加了两节补足：
+- 越权验证用**读/列表差分**优先；写越权可测但顺序是「先添加 → 再删自己刚加的那条」，不改别人已存在的订单/地址/密码/角色；禁止批量、禁止真资损
+- **禁止登出/注销**操作（用户提供登录态后，全程不得调用 `/logout`、`/revoke`，不得测「退出后会话还有效」）
+- **CORS 永久不挖**
+- 禁止破坏性利用、禁止留后门、禁止拖库
+- 不索取/留存真实敏感数据（身份证、手机号、成绩、支付信息），验证做到「能证明存在」即止
 
-- **启动必读**：进站前先读 `dig-scope-workflow.md` + `src-value-hunting.md`；写报告前读 `vuln-report-format.md`。
-- **规则速查表**：把 `dig-scope`、`src-value`、`hunt-iter` 等裸短名映射到具体文件，避免解析失败。
+---
 
-## 还没做的
+## 五、最近更新
 
-- 本技能**不依赖 fofa MCP、不需要任何 key**：FOFA 查询在 fofa.info 网页手动跑（语法散见各案例库 + `知识库/recon-methodology.md` 文首）；无配额时走 `dig-scope` §2.1.4 兜底。
-- 本机 `~/.grok` 仍不存在，Grok Build 版未安装（不影响本技能运行）。
+- **2026-09-16**：新增 `tools/` 四个脚本（批量探根 / 指纹分类 / 跟一跳验证，判据表外置到 `fingerprint_markers.py`）；`知识库/recon-fingerprint-cdn-wildcard.md` §1.3 补入 30 站实测校准的入口类判据——**root 只回 301/302 时厂商信息在跳转后的登录页上，必须跟一跳**（实测未定性站跟跳后 44% 拿到判据，但仍不充分）；补金智三个新判据、`Server: Server` = 同一款国产 SSL VPN 的硬判据。
+- **2026-09-15**：新增 `rules/batch-verify-discipline.md`（批量探测假阳性控制，实测把 24 条假阳压到 1 条）；`vuln-report-format.md` 增补 EDUSRC 特别条款（定性纪律 / 佐证合并不拆分 / 平台 15 条忽略规则自检）。
 
+---
+
+*源自 Grok Build 身份包 `clown-src-6k-skill`，2026-09-13 移植到 WorkBuddy 并持续实战迭代。*

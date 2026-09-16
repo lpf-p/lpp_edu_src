@@ -271,4 +271,4 @@ JS 逆向细节 → `知识库/js-reverse-guide.md`。打开目标按 `dig-scope
 | FOFA 资产搜索 | `~/.grok` 无（原靠 MCP） | **fofa.info 网页手动跑**（语法见 `知识库/recon-methodology.md` + 各案例库）；无 key 可用，无配额走 DNS+HTTP+crt 兜底 |
 | 路径引用 | `~/.grok/...` | 已全部改写为本技能根目录绝对路径 |
 
-详细移植记录见 `README.md`。
+用法、目录说明与红线见 `README.md`。
