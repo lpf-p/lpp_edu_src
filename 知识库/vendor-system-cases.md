@@ -35,11 +35,11 @@
 | 10 | 熊海 xhcms | CMS | 文件包含 / SQLi / 越权登录 | `?r=../phpinfo` 包含；Cookie `user=admin` 任意登录；`?r=content&cid=1 and updatexml(...)` | — |
 | 11 | 睿贝 CRM（RebeeCRM） | CRM | 路径穿越 | `/appPatchDownLoad?fileName=../../../../RebeeCRM/_RebeeCRM_installation/installvariables.properties` | — |
 | 12 | 电信网关（管理后台） | 安全设备 | 默认口令 | 后台 `admin / hassmedia` | — |
-| 13 | 浙江计量科学研究院 计量智检系统 | 质检 / 政务 | actuator 未授权 | `222.240.1.5:8190/api/actuator/env` + `/api/actuator/heapdump` | — |
+| 13 | 浙江计量科学研究院 计量智检系统 | 质检 / 政务 | actuator 未授权 | `222.240.1.x:8190/api/actuator/env` + `/api/actuator/heapdump` | — |
 | 14 | 贵州电网 充电通 | 电力 | heapdump / 任意文件读 / XSS | actuator heapdump 提取 redis 口令；`filePath=../../../../..//etc/passwd`；未授权接口泄露充电站/设备/人员 | — |
 | 15 | 蓝凌 Landray-OA | OA | SQL 注入 | `/dossier/doc_fileedit_word.aspx?recordid=1' and 1=@@version--+&edittype=1,1`（MSSQL） | `app="Landray-OA系统"` |
 | 16 | 通达 OA（Tongda） | OA | 登录绕过（未授权接管） | `POST /logincheck_code.php` 体 `UID=1` → 取 PHPSESSID → 直接访问 `/general/index.php` 为管理员 | `app="通达 OA"` |
-| 17 | 中国兵器工业集团（通达 OA） | 军工（通达 OA 部署） | 同 #16 登录绕过 | 资产 `61.184.199.14:8989`（Office Anywhere 2017），手法与 #16 完全一致 | — |
+| 17 | 中国兵器工业集团（通达 OA） | 军工（通达 OA 部署） | 同 #16 登录绕过 | 资产 `61.184.199.x:8989`（Office Anywhere 2017），手法与 #16 完全一致 | — |
 | 18 | 某保险公司云服务器 | 金融 / 云 | 云凭据泄露接管 | Spring Boot `/actuator/env` 泄露华为云 OBS AK/SK + OSS bucket → 行云管家导入接管 37 台云主机 | — |
 | 19 | 因酷网校 Inxedu（在线教育） | 教育 Java | XSS / IDOR / SQLi / 上传 | 课程搜索反射 XSS；`/uc/updateUser` 改 user.userId 越权；MyBatis `${}` `deleteArticleByIds`；`/video/uploadvideo` fileType=jsp getshell | `body="inxedu"` |
 | 20 | **JeeSite 系快速开发平台**（江苏兴光 CCPM / 天津宏达 / 山东迪彩 / 河南同源 等**多家厂商二次开发**） | 通用 Java 平台 | SQL 注入（`mobile` 参数） | `/a/sys/register/registerUser?&mobile=1'`、`/a/sys/user/resetPassword?&mobile=1'`；指纹 `url="*/a/sys/*"`、`/a/login;JSESSIONID=` | `body="/a/sys/"`（另见 §7.6） |
@@ -164,7 +164,7 @@ wuzhicms v4.1.0 为 PHP CMS，基于 coreframe 框架。报告以“路由分析
 某电信网关设备管理后台存在默认口令 `admin / hassmedia`，登录后即可进入管理界面。属“默认口令/弱口令”类，评级取决于后台权限（能否配置转发、读流量、上传）。安全设备默认凭据是高频低危项，SRC 常要求“可造成实质危害”才收；提交建议证明登录后能读取敏感配置或造成业务影响，而非仅登录成功。
 
 **【13】浙江计量科学研究院 计量智检系统**　media:`word_..._2d804b5648aba3a08e74c5a16c48be617492290188703512`
-浙江计量院计量智检系统 `222.240.1.5:8190/api/actuator/env` 与 `/api/actuator/heapdump` 未授权开放，env 泄露配置、heapdump 可提取内存中的口令/令牌。属“Spring Boot  actuator 未授权”高危。凡 Java/Spring 资产必扫 `/actuator`、`/api/actuator`。提交建议附 heapdump 中命中的口令字段（打码）与可进一步利用的链路，证明实际危害。
+浙江计量院计量智检系统 `222.240.1.x:8190/api/actuator/env` 与 `/api/actuator/heapdump` 未授权开放，env 泄露配置、heapdump 可提取内存中的口令/令牌。属“Spring Boot  actuator 未授权”高危。凡 Java/Spring 资产必扫 `/actuator`、`/api/actuator`。提交建议附 heapdump 中命中的口令字段（打码）与可进一步利用的链路，证明实际危害。
 
 **【14】贵州电网 充电通**　media:`word_..._ae03a2c89297f70535c0083a887f4c1e887f4c1e7492290188703512`
 充电通后台 `admin.charge.gapsd.com` 的 Spring Boot actuator 未授权，`/heapdump` 提取出 redis 口令（host 172.18.227.142）与 OSS 相关配置；另有任意文件读 `GET /api/account/shop/download/?Access-token=1&Client-digest=1&filePath=../../../../..//etc/passwd`、多处反射 XSS，以及未授权接口泄露近百充电站、379 设备、管理人员姓名手机号。属“配置泄露+文件读+XSS+信息泄露”组合高危。电力资产须走授权 SRC，严禁外传真实人员信息。
@@ -176,7 +176,7 @@ wuzhicms v4.1.0 为 PHP CMS，基于 coreframe 框架。报告以“路由分析
 通达 OA 存在经典登录绕过：向 `POST /logincheck_code.php` 发送体 `UID=1`，服务端返回 `{"status":1,...,"url":"general/index.php?isIE=0"}` 并 Set-Cookie 一个 PHPSESSID；持该会话直接访问 `/general/index.php` 即以系统管理员身份进入，无需密码。在青山钢铁、宏润化工、成都棠湖等多单位复现。属“未授权接管/认证绕过”严重。注意该 Nday 可能已被 SRC 收录，提交需带本资产证据。
 
 **【17】中国兵器工业集团（通达 OA 部署）**　media:`word_..._e580e883a1ca8394eb3e7c46aefedeb77492290188703512`
-中国兵器工业集团公司门户 `61.184.199.14:8989`（Office Anywhere 2017 / 通达 OA）沿用与 #16 完全相同的 `logincheck_code.php` + `UID=1` 登录绕过，成功以 OA 管理员进入集团总部门户。手法与 #16 一致，本份作为“同一 Nday 在军工单位复现”的实例留存，**非新技术点**。涉及军工资产，仅作指纹与影响面记录，实战提交须严格授权。
+中国兵器工业集团公司门户 `61.184.199.x:8989`（Office Anywhere 2017 / 通达 OA）沿用与 #16 完全相同的 `logincheck_code.php` + `UID=1` 登录绕过，成功以 OA 管理员进入集团总部门户。手法与 #16 一致，本份作为“同一 Nday 在军工单位复现”的实例留存，**非新技术点**。涉及军工资产，仅作指纹与影响面记录，实战提交须严格授权。
 
 **【18】某保险公司云服务器接管**　media:`word_..._d9871ce413c4f141ce6c133182ca0e447492290188703512`
 对某保险资产目录扫描发现 Spring Boot 未授权 `/actuator/env`，其中泄露华为云 OBS 的 `ak`/`sk`/`bucketName` 及 OSS bucket 配置。利用行云管家导入这对 AK/SK，成功将该账号下 37 台云主机（华北北京四）导入并接管。属“云凭据泄露→云主机接管”严重链路。此类必须走 SRC 授权，且报告不得留存可用 AK/SK；本表仅记泄露位置与利用步骤。
@@ -200,7 +200,7 @@ wuzhicms v4.1.0 为 PHP CMS，基于 coreframe 框架。报告以“路由分析
 转转漏洞链：① 订单 API 加 `callback=hijacking` 触发 JSONP，子域 CORS 宽松可劫持订单/用户信息；② `/zzopen/gameAccount/findOrderAccountInfo` 凭 orderId+uid（来自 JSONP）越权读取游戏账号口令；③ APP scheme `aaaa://jump/core/web/jump?url=` 未校验致任意跳转；④ 租期 `num` 参数可改（1 元租 4 小时→改 24 小时）。属“JSONP劫持+IDOR+跳转+逻辑”组合，建议并入 logic-web-cases 作通用检查项。
 
 **【25】桂平市人民医院 人力资源系统（任意文件读）**　media:`word_..._cabe06e237c33c27c5bf930a174b98b87492290188703512`
-桂平市人民医院人力资源管理系统 `218.65.238.44:8081` 存在 Resin 文档目录任意文件读取：访问 `/resin-doc/viewfile/?file=index.jsp` 即可读取服务器文件内容（PoC 成功读到 index.jsp 源码）。属“Resin viewfile 任意文件读取”中高危。该类 Resin 老漏洞在医疗/企业系统常见，FOFA 可按 Resin Server 指纹定位。提交建议确认能否跳出 web 根读系统文件与配置文件。
+桂平市人民医院人力资源管理系统 `218.65.238.x:8081` 存在 Resin 文档目录任意文件读取：访问 `/resin-doc/viewfile/?file=index.jsp` 即可读取服务器文件内容（PoC 成功读到 index.jsp 源码）。属“Resin viewfile 任意文件读取”中高危。该类 Resin 老漏洞在医疗/企业系统常见，FOFA 可按 Resin Server 指纹定位。提交建议确认能否跳出 web 根读系统文件与配置文件。
 
 **【26】生态环境部（Struts2 S2-016）**　media:`word_..._b56831d3aadf7cdbc798cf0d4e4cd4827492290188703512`
 生态环境部站点 `rr.mee.gov.cn`（全国核技术利用辐射安全申报系统）的 `/resetpwd_getServerDate.action` 存在 Struts2 S2-016 命令执行，工具一键验证可 `ping` 回显。属“Struts2 RCE”严重。政府老系统 Struts2 框架存量大，action 名（`resetpwd_*`/`getServerDate`）可作指纹批量扫。实战须严守授权与“不破坏”原则，仅验证命令回显即可，勿写文件/反弹。
@@ -215,7 +215,7 @@ wuzhicms v4.1.0 为 PHP CMS，基于 coreframe 框架。报告以“路由分析
 小度商城 `dumall.baidu.com` 限时秒杀限制“每人 1 个”，但下单 JSON 中 `itemQuantity` 可控，抓包改为 2 即成功以秒杀价购买 2 件并付款。属“限购/数量限制绕过（薅羊毛）”低中危。与 oppo 突破购买数量同类，建议并入 logic-web-cases 的“数量参数篡改”通用项；实战提交常因“无实质资损/已修复”低评级。
 
 **【30】中国电信综合办公系统（SQL 注入）**　media:`word_..._6c0b1444d3d62e410e4c4f30e425505d7492290188703512`
-中国电信综合办公系统 `218.93.20.142:6060` 登录接口 `POST /login.do` 中 `username` 参数存在 MySQL 时间盲注（`dispatch=loginCheck&username=test' AND (SELECT SLEEP(5))...`），sqlmap 确认当前用户为 DBA。属“SQLi”高危。运营商自研办公系统常带此类注入，FOFA 难统一指纹，需按标题/body 定位。提交建议附延时与 DBA 证据，并确认是否可读通讯录等敏感表。
+中国电信综合办公系统 `218.93.20.x:6060` 登录接口 `POST /login.do` 中 `username` 参数存在 MySQL 时间盲注（`dispatch=loginCheck&username=test' AND (SELECT SLEEP(5))...`），sqlmap 确认当前用户为 DBA。属“SQLi”高危。运营商自研办公系统常带此类注入，FOFA 难统一指纹，需按标题/body 定位。提交建议附延时与 DBA 证据，并确认是否可读通讯录等敏感表。
 
 ---
 

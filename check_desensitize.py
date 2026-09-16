@@ -55,7 +55,9 @@ CASE_PAT = re.compile(r'(-cases\.md$|edusrc-cases|^ima-|subkb-|archive-inventory
 
 # ── 自建实测标记：出现即说明该文件含「我们自己扫的」内容，不是公开报告摘录
 SELFTEST_RE = re.compile(
-    r'20\d\d-\d\d-\d\d[^，。]{0,10}实测'      # 2026-09-16 实测 / 补录 2026-09-16，实测
+    # ⚠️ 中间用 [^\n。] 而非 [^，。]：实测过「补录 2026-09-16，实测」这种写法中间有中文逗号，
+    #    被 [^，。] 挡住会漏判。换行/句号才断句。
+    r'20\d\d-\d\d-\d\d[^\n。]{0,12}实测'      # 2026-09-16 实测 / 补录 2026-09-16，实测
     r'|第[一二三四五六七八九十\d]+轮实测'      # 第五轮实测
     r'|实测\s*\d+\s*站'                       # 实测 234 站
 )
@@ -135,10 +137,11 @@ def main():
 
     print('扫描 %d 个 md（git 追踪，已排除 _work/）：%s\n' % (ntracked, root))
 
-    must, exempt, grew, ip_hit, downgraded = {}, {}, [], {}, []
+    must, must_ip, exempt, grew, ip_hit, downgraded = {}, {}, {}, [], {}, []
 
     for f, d in sorted(data.items()):
-        known = set(base.get(f, [])) if base else set()
+        b = base.get(f) if base else None
+        known = set(b['dom']) if isinstance(b, dict) else (set(b) if b else set())
         new = d['dom'] - known                       # 基线之外的新增域名
         exempt_case = d['case'] and not d['selftest']  # 护栏 1：含实测标记 → 取消豁免
         if d['case'] and d['selftest']:
@@ -153,10 +156,18 @@ def main():
                 must[f] = new
             elif not base and d['dom']:
                 must[f] = d['dom']                   # 无基线：首次全量，请人工过一遍
-        if base and len(d['dom']) > len(known) and (base.get(f) is not None):
+        if base and b is not None and len(d['dom']) > len(known):
             grew.append((f, len(known), len(d['dom'])))
+
+        # 缺口 3：IP 比域名更直接可用。仅在「严格模式文件」（非豁免 / 已取消豁免）
+        # 里把 IP 纳入退出码；豁免的公开报告文件只提示，避免噪音。
         if d['ip']:
             ip_hit[f] = d['ip']
+            if not exempt_case:
+                known_ip = set(b['ip']) if isinstance(b, dict) else set()
+                new_ip = d['ip'] - known_ip
+                if new_ip or (b is None and d['ip']):
+                    must_ip[f] = new_ip or d['ip']
 
     if downgraded:
         print(':: 护栏 1 —— 含自建实测标记的 cases 文件，已取消豁免按严格模式审查：')
@@ -167,6 +178,11 @@ def main():
         print('!! 实测类未打码域名 —— 必须处理：%d 个文件' % len(must))
         for f in sorted(must, key=lambda x: -len(must[x])):
             print('   %-42s %2d 个  %s' % (f, len(must[f]), ', '.join(sorted(must[f])[:8])))
+        print()
+    if must_ip:
+        print('!! 严格模式文件中的公网 IP —— 必须处理：%d 个文件' % len(must_ip))
+        for f in sorted(must_ip, key=lambda x: -len(must_ip[x])):
+            print('   %-42s %s' % (f, ', '.join(sorted(must_ip[f])[:8])))
         print()
     if grew:
         print(':: 护栏 2 —— 命中数较基线增长，确认是否为新增实测记录：')
@@ -185,8 +201,16 @@ def main():
             print('   %-42s %2d 个' % (f, len(exempt[f])))
         print()
 
+    # 缺口 1：定基前必须先清空待处理项，否则一次手滑就把问题域名写进基线 → 此后永久静默，
+    #         护栏退化成「一次性护栏」。这里直接拒绝。
     if '--update-baseline' in sys.argv:
-        json.dump({f: sorted(d['dom']) for f, d in data.items()},
+        if must or must_ip:
+            print('!! 有 %d 个文件待处理（域名 %d / IP %d），拒绝定基 —— 先修再定，防止洗白。'
+                  % (len(set(must) | set(must_ip)),
+                     sum(len(v) for v in must.values()),
+                     sum(len(v) for v in must_ip.values())))
+            return 1
+        json.dump({f: {'dom': sorted(d['dom']), 'ip': sorted(d['ip'])} for f, d in data.items()},
                   io.open(base_f, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
         print('基线已写入 %s（%d 个文件，仅本地、已 gitignore）。' % (base_f, len(data)))
         return 0
@@ -194,8 +218,11 @@ def main():
     if not base:
         print('!! 尚无基线：以上为全量清单，人工过一遍后跑 `--update-baseline` 定基。')
         return 1
-    if must:
-        print('实测类 %d 处待处理，修完再 push。' % sum(len(v) for v in must.values()))
+    if must or must_ip:
+        print('实测类 %d 处待处理（域名 %d / IP %d），修完再 push。'
+              % (len(set(must) | set(must_ip)),
+                 sum(len(v) for v in must.values()),
+                 sum(len(v) for v in must_ip.values())))
         return 1
     if grew:
         print('有 %d 个文件命中数增长，确认后再 push。' % len(grew))
