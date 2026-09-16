@@ -1,0 +1,13 @@
+_work/
+__pycache__/
+*.pyc
+*.tmp
+*.bak
+*.log
+.env
+.DS_Store
+Thumbs.db
+node_modules/
+
+# 存档目录：仅本地留存，不参与技能运行，公开仓库不放以免版权/AUP 风险
+reference/
