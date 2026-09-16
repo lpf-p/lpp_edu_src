@@ -15,6 +15,8 @@ Before bypassing, know what you're fighting.
 | `nmap --script=http-waf-detect` | NSE script for WAF detection |
 | Manual header inspection | `Server`, `X-CDN`, `X-Cache`, `cf-ray` (Cloudflare), `x-sucuri-id`, `x-akamai-*` |
 
+> ⚠️ **`wafw00f` 对国产防护基本无效**（它认的是 Cloudflare/Akamai/Imperva 那批）。**国内目标别指望工具报名字**，看 §9.3 的实测结论。
+
 ### 1.2 Behavioral Fingerprinting
 
 ```
@@ -23,7 +25,10 @@ Before bypassing, know what you're fighting.
 3. Compare: 403? Custom block page? Redirect? Connection reset?
 4. Block page content reveals WAF: "Cloudflare", "Access Denied (Imperva)", "ModSecurity"
 5. If transparent proxy: check response time difference (WAF adds latency)
+6. ★ 国产动态防护走另一条路：见 §9 —— 412 + $_ts 就是瑞数，不用发包就能认
 ```
+
+> ★ **第 6 步是本文件 2026-09-16 补的重点**：国内目标的防护形态和国外完全不同，**第 1~5 步（发攻击载荷看阻断）经常走不通**，因为国产动态防护**在「基线请求」阶段就已经把你挡在外面了**（412 + JS 挑战）。所以先做「基线形态识别」，再谈绕过。
 
 ---
 
@@ -175,7 +180,7 @@ SELECT\t*\tFROM\tusers
 | Blocked | Alternative |
 |---|---|
 | `UNION SELECT` | `UNION ALL SELECT`, `UNION DISTINCT SELECT` |
-| `OR 1=1` | `OR 2>1`, `OR 'a'='a'`, `||1` |
+| `OR 1=1` | `OR 2>1`, `OR 'a'='a'`, `\|\|1` |
 | `<script>` | `<svg/onload=alert(1)>`, `<img src=x onerror=alert(1)>` |
 | `alert(1)` | `prompt(1)`, `confirm(1)`, `print()` (Chrome) |
 | `eval()` | `Function('code')()`, `setTimeout('code',0)` |
@@ -502,3 +507,72 @@ Payload blocked by WAF?
 | Imperva | HPP + JSON nesting | Unknown | Parameter pollution |
 | F5 BIG-IP | Serialized data + learning mode | Configurable | Weak serialization inspection |
 | Sucuri | Origin IP + alt tags | Unknown | WordPress-centric rules |
+| **瑞数 Botgate** | 无头浏览器 / JS 补环境生成 cookie | — | **不是规则型 WAF，是动态混淆，没有「payload 绕过」这条路** |
+
+---
+
+## 9. 瑞数信息 Botgate（国产 · 动态防护）—— 2026-09-16 实测
+
+> **为什么必须补这一节**：本文件 §1~§7 的矩阵（Cloudflare / AWS / ModSecurity / Akamai / Imperva / F5 / Sucuri）**清一色是国外产品**。而面向国内 SRC / EDUSRC 时，**遇到最多的是国产防护**，此前**零覆盖**。这是本文件最大的结构性缺口。
+
+### 9.1 识别（单请求可判，2026-09-16 实测样本 `mcoa.swu.edu.cn`）
+
+一次 `GET /` 就能认，**不需要发包攻击**：
+
+| 观测点 | 实测值 |
+|---|---|
+| 状态码 | **`412 Precondition Failed`**（不是 403） |
+| Set-Cookie | **随机名** cookie（实测 13 位大小写数字混排，如 `61zqTsrO93nzO`），值 100+ 字符，带 `Secure; HttpOnly`，过期时间约 10 年后 |
+| 正文 | 含全局变量 **`$_ts`**、`$_ts.nsd=<数字>`、`$_ts.cd="<随机串>"` |
+| 正文 | `<meta id="<随机10位>" content="<随机串>" r='m'>`、`<script r='m'>` —— **`r='m'` 属性是显著特征** |
+| 正文 | DOCTYPE 用 `XHTML 1.0 Transitional`，但内容是混淆 JS（**年代错位本身就是线索**） |
+| `cache-control` | `no-store` |
+
+**一句话判据**：`412` + `$_ts` + 随机名 cookie = 瑞数。
+
+### 9.2 处置（关键：思路和静态 WAF 完全不同）
+
+- 瑞数**不是规则型 WAF**，它是**人机对抗网关**：每次请求下发的 JS 都不同（VMP 混淆），要**执行 JS 换出 cookie** 才能进站。所以 §2「GENERIC BYPASS CATEGORIES」（编码绕过、HPP、分块传输……）**对它基本无效**——你绕的不是规则，是**客户端环境检测**。
+- 可行路径只有两类：**① 无头浏览器**（Playwright/Selenium 真跑 JS，最省事，SRC 场景推荐）；**② JS 补环境**（Node + `jsdom`/`vm` 补 `window`/`document`/`navigator`，逆向 VMP 逻辑）。公开资料（瑞数 5/6 代逆向文）一致指出这条路是**逐版本对抗**，成本高。
+- **SRC 实战建议**：认到瑞数 → **先判断值不值得啃**。它是「防爬/防自动化」为主，**不代表后端没洞**；如果你的目标是业务逻辑漏洞（越权、密码重置、支付），用无头浏览器正常走流程即可，**不要把时间耗在破防护上**。
+
+### 9.3 顺带一条实测结论：国产网关倾向「抹掉」Server 头
+
+2026-09-16 两轮批量实测（226 个教育资产 + 234 个高校统一认证 / WebVPN 资产），**字面量 `Server: none` 累计 48 站**（第一轮 20 + 第二轮 28），横跨北师大 / 复旦 / 泛微系 / 瑞数防护站 / **网瑞达 WebVPN** / 金智统一认证 / 正方 / CAS 系，另有 `Server: Server`、`Server: *****`、`Server` 后接一长串空格等变体。**这跟 Cloudflare/Akamai「大方报自己名字」的行为完全相反。**
+
+⚠️ **但别把它当单一产品的判据**：实测 48 站分属**多个不同系统**（泛微 e-cology、瑞数、**网瑞达 WebVPN**、金智统一认证、正方、CAS 系、复旦 / 上外 / 人大自研），说明它是**某几类网关的通用默认配置**，不是某一家独有。**只能读作「有网关介入」。**
+
+推论（对打法有直接影响）：**面对国内目标，「特征匹配法」经常失效，「行为指纹法」（§1.2 那套 baseline → 攻击 → 比对）才是主力**。见到 Server 头被抹成字面量/星号/空格 → 判为「有网关或防护介入」，别当「无 Server 头」。
+
+### 9.4 国产防护矩阵（2026-09-16 批量实测 226 个教育资产填充）
+
+> 上一版此节标为「空白」。本轮批量实测后，**把能确证的填进来，没确证的继续留空**。
+
+| 产品 | 识别判据（单请求可判，不用发攻击载荷） | 实测样本 | 阻断形态 |
+|---|---|---|---|
+| **瑞数 Botgate** | `412` + 正文含 `$_ts`（`$_ts.nsd`/`$_ts.cd`）+ 随机名 cookie + 标签属性 `r='m'` | `mcoa.swu.edu.cn`、`coa.swu.edu.cn`、`oa.cse.edu.cn` | **412** + JS 挑战页 |
+| **华为云 WAF** | **`Server: CloudWAF`** + `Set-Cookie: HWWAFSESID` / `HWWAFSESTIME` + 正文 `The access is blocked.` + `requestid` 形如 `32-0000-0000-0000-<时间戳>-<hex>` | `oa.xjmu.edu.cn` | **418**（非标准码）+ 拦截页 |
+| **`wengine` 认证准入网关**（**2026-09-16 确证厂商 = 北京网瑞达科技** `wrdtech.com`，与 WebVPN 同一家，`wengine` 是其产品代号） | **`488`** + title「访问出错 - 488」+ 正文引用 `/wengine-auth-failed.png` + `Server: none` | `oa.gypec.edu.cn`、`moa.gypec.edu.cn`、`oaem.swfu.edu.cn` | **488** + 认证失败页 |
+
+**⭐ 本轮最重要的一条通用规律：国产防护爱用「非标准状态码」做阻断。**
+
+| 状态码 | 实测对应 | 记忆点 |
+|---|---|---|
+| `412` | 瑞数 Botgate | 人机对抗，要跑 JS |
+| `418` | 华为云 WAF | `Server: CloudWAF` |
+| `488` | `wengine` 认证网关 | `wengine-auth-failed.png` |
+| `403` | 通用 WAF / 访问控制 | 中文自定义页居多 |
+
+→ **见到 4xx 里「不像标准码」的（412/418/488…），先按「有防护」处理，别当成「站点异常」。**
+
+**发现但尚未确证的（只记录，不入表）**：
+- `SF_cookie_32` cookie → 深信服（Sangfor）系（`bhmoa.qdbhu.edu.cn`）；同类 `sauth` cookie 亦指向深信服认证产品
+- `acw_tc` cookie → 阿里云 SLB / CDN
+- `route` cookie → Spring Cloud Gateway（说明前面挂了网关）
+- **`Server: none`（实测累计 48 站）→ 不是单一产品**：在泛微、瑞数、`wengine` 网关、复旦系自研、上外、人大上都出现。**只能读作「有网关介入」，不能当任何单一产品的判据**（`*****` / 长空格同理）
+- **⚠️ 例外修正（2026-09-16 第五轮）：`Server: Server` 反而能当指纹用**。与 `none` 不同，**`Server: Server` 实测 100% 落在 WebVPN 上**（清一色 `vpn.*` / `*.vpn.*` 域名），第五轮进一步确认其中 6 站是**同一款国产 SSL VPN**（硬判据：`/com/64sys.js` + `<!-- 旧方案 -->` / `<!-- 新方案 -->` 注释 + JS 变量 `is_old_solution` / `g_midatk`）。**看到 `Server: Server` 可直接往「WebVPN」方向判** —— 这是少数「值被写错反而成为指纹」的特例
+
+**仍未确证、保持空白的**：长亭雷池 / 安恒明御 / 知道创宇创宇盾 / 腾讯云 WAF / 安全狗 / 云锁。
+
+**处理原则（别凭想象补）**：遇到疑似国产防护时，**先在实测中把三件事记下来再落笔** —— ① 基线响应（状态码/头/体积）② 发一个明显攻击载荷后的**阻断特征**（403？自定义页？连接重置？还是非标准码？）③ 阻断页正文里的**产品字样/文件名/图片名**。攒够 2~3 个同产品样本再写进本表，**单个样本不写**。
+

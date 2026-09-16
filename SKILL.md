@@ -18,9 +18,9 @@ agent_created: true
 ---
 
 ## 本技能根目录
+
 ```
-技能根目录即本 SKILL.md 所在目录（目录名为 `lpp_edu_src`）。
-所有 `知识库/`、`rules/` 引用均相对此目录解析。
+~/.workbuddy-ai/skills/lpp_edu_src
 ```
 
 下文所有 `rules/xxx.md`、`知识库/xxx.md` 引用均**相对本目录**。
@@ -97,6 +97,15 @@ agent_created: true
 |---------|------------|
 | 有用户体系（注册/登录） | `知识库/idor-test.md`（**越权 + 业务接口未授权的系统化打法**：核心认知「越权=缺失的艺术，只能靠差分」/ 多账号矩阵 / 改·加·删·替换四动作 / ID 枚举三法 / Autorize·AuthMatrix / 前端文案线索 / 组合利用链）+ `知识库/authbypass-test.md`（任意登录/接管，§4.2.2）|
 | **有登录框 / 验证码 / 统一认证** | `知识库/login-bypass-playbook.md`（**十枪**：删参数 → 改响应 → 分包验证 → 验证码缺陷 → 默认凭据 → 万能密码 → 枚举差分 → JWT）。**先试「删、改、复用」再谈爆破** |
+| **认到统一身份认证 / CAS / SSO**（`authserver.` / `sso.` / `cas.` 域名，`/authserver/login`，`/lyuapServer/login`，title「统一身份认证」；**⭐ 金智三个新判据（2026-09-16 第五轮）：① 页面出现「组件版本号」「请选择证书」「选择的设备序列号」= 金智自带的 USB Key 证书登录组件，很多站只暴露这段文案、不暴露 `/lyuapServer/` 路径；② `assets/js/less.min.js` + `assets/js/ai.min.js` + 非标端口 `4101`；③ `/build/ecodesdk/`（金智 ecode 平台 SDK）**） | `知识库/nday-watchlist-2026.md` §1 **金智教育 wisedu 条目**（初始口令 = 学号+身份证后 6 位 / CAS 面：`service` 重定向、`lt`+`execution`、`_eventId` 跳步、`serviceValidate` XXE / CNVD-2018-17443 已修 6.2.4）+ `知识库/authbypass-test.md` + `知识库/password-reset-test.md`。**全校通行证，打一个等于打一片** |
+| **认到 WebVPN**（`webvpn.*` / `wvpn.*` / `vpn.*` / `*.vpn.*` 域名；URL 含 `/http/<hex>/` 且 hex 以 `77726476706e69737468656265737421` 开头；cookie `wengine_vpn_ticket*`；`Server: none` / `Server: Server` 字面量；**第 3 款：`Server: appframe` + `/vpn/theme/auth_home.html`**） | ⭐ **这是通往内网的跳板，价值在「进去之后」**。→ `知识库/nday-watchlist-2026.md` §1 **网瑞达 WebVPN 条目**（默认 key/iv 可加密任意内网地址 / 弱口令 CNVD-2021-84288 / 登录后 RCE）+ `知识库/recon-fingerprint-cdn-wildcard.md` §1.3。**实测 234 站：网瑞达 10 站；`Server: Server` 8/8 全是 WebVPN，其中 6 站已确认为同一款国产 SSL VPN（硬判据 `/com/64sys.js` + `<!-- 旧方案 -->` 注释 + JS 变量 `is_old_solution` / `g_midatk`）**。⚠️ **只验不挖——证明内网可达即停手** |
+| **认到图书馆电子资源 / 资源代理**（`libproxy.*` / `dbproxy.*` / `eds.*` 域名；`/ermsLogin/SSOLogin.do?msgcode=login_valid`；cookie `CWJSESSIONID`；页脚「©北京创文科技有限公司」） | **北京创文科技 ERMS（图书馆电子资源管理平台）** —— **与 WebVPN 同属「资源代理型入口」，也是通往内网 / 授权资源的路**。→ `知识库/recon-fingerprint-cdn-wildcard.md` §1.3。试 `msgcode` 参数越权 / `ermsClient/*.do` 未授权 / 对接学校统一认证的 ticket 能否伪造 |
+| **认到泛微**（三条线别混：e-cology 认 `ecology_JSessionid`/`wev8`/首页 `ETag`；e-office/E-Mobile 认 `/weaver/`；**移动端认 title「移动管理平台-企业管理」+`/emp`**） | `知识库/recon-fingerprint-cdn-wildcard.md` §1.3 泛微三行 + `知识库/vendor-system-cases.md` §一 #39~#42。**教育资产里最常见的厂商成品系统之一（实测 234 站占多数）**，先打未授权 `/api/ec/dev/app/test`。⚠️ **三条线路径不通用** |
+| **遇到 412 / 正文含 `$_ts` / 随机名 cookie** | **瑞数 Botgate 动态防护**（国产）。→ `知识库/waf-bypass.md` §9：**别发绕过载荷**（它不是规则型 WAF），要无头浏览器跑 JS 换 cookie；先判值不值得啃 |
+| **遇到 418 / `Server: CloudWAF` / `HWWAFSESID`** | **华为云 WAF**（国产）。→ `知识库/waf-bypass.md` §9.4 国产防护矩阵 |
+| **遇到 488 / title「访问出错 - 488」/ `wengine-auth-failed.png`** | **`wengine` 认证准入网关** —— **2026-09-16 确证厂商 = 北京网瑞达科技**（`wrdtech.com`，与 WebVPN 同一家，`wengine` 是其产品代号）。→ `waf-bypass.md` §9.4。**大概率不是业务系统，别硬打** |
+| **认到 aTrust 2.0 / `sauth` cookie** | **深信服 aTrust 零信任准入**。⚠️ **是学校网络准入层，不是 OA**。`moa.*`/`oa.*` 域名指向它 = 业务系统在准入后面，先绕开或换资产 |
+| 有 WAF 拦截 | `知识库/waf-bypass.md`（§9 国产防护：瑞数实测识别 + 国产静态 WAF 空白区说明） |
 | 认到已知系统/组件（OA、调度面板、Tomcat、Next.js、AI 网关…） | `知识库/nday-watchlist-2026.md`（2026 高危 Nday 速查，按**国内 SRC 可挖度**排序，不是按 CVSS）。**Nday 窗口期 2.4 天，认到当天核** |
 | 有搜索/筛选功能 | `知识库/injection-test.md`（注入）|
 | 有注入但**无回显/无差分**（盲） | `知识库/sqli-advanced-test.md`（布尔/时间/带外/二次/堆叠）|
@@ -118,7 +127,6 @@ agent_created: true
 | 公网已见 Redis/rsync/FPM/AJP/YARN/2375/h2-console | `知识库/info-leak-test.md` §五（见了才打）+ 对应 `ssrf`/`jndi`/`path-traversal` |
 | 有 CORS / 跨域接口 | **跳过**（不挖，**勿开** `cors-test.md`）；转注入/越权等 |
 | 有状态变更写操作 | `知识库/csrf-test.md` |
-| 有 WAF 拦截 | `知识库/waf-bypass.md` |
 | 路径/下载/读文件 | `知识库/path-traversal-lfi-test.md` |
 | XML / 文件解析 | `知识库/xxe-test.md` |
 | Java 反序列化 / 中间件 | `知识库/deserialization-test.md` + `知识库/jndi-injection-test.md` |
@@ -238,7 +246,7 @@ JS 逆向细节 → `知识库/js-reverse-guide.md`。打开目标按 `dig-scope
 | `知识库/archive-inventory.md` | **「其他」归档清单与副本对照（2b/2c）**：科普 102 / HW 18 / 电子书 16 / 制度 8 / EduSRC 单点归档 56 的完整留档；**明确副本可删对照** + **标题同但 size 不同（不可判重）警示** + 图片碎片 49 的处理建议（含已被哪个案例覆盖）。不精读，只留档与给删副本依据 |
 | `知识库/other-census.md` | **案例库「其他」762 份构成调研（P1-4 结论）**：不是漏洞类型，而是未归位附件倾倒口。Web 547 构成表 + EduSRC 185 教育行业归档特征 + App/小程序方法链路 + 去重（762→≈562）+ 6 条完整攻防链（EDR 二次认证文件删除绕过 / 域渗透 dcsync / DNS 隧道 / AC Host 白名单绕过 / 泛微三层 URL 编码 / K8s etcd→Pod 逃逸）+ 安卓加固对抗（改 SM4 key 表）+ **三分法处置建议** |
 | `知识库/open-redirect-test.md` | **URL 跳转 / 重定向**（成篇）：参数名速查（`url`/`redirect`/`next`/`returnUrl`/`callback`…）+ 服务端 sink 与前端 sink + 白名单/协议/编码绕过 + 与 OAuth·登录态组合论证升档（案例见 `logic-web-cases.md` §9）|
-| `知识库/ghost-bits-cast-test.md` | **Java char→byte 窄化（Ghost Bits / Cast Attack）**：`char`(16bit) 转协议字节时的截断特性，用于走私 / 邮件头 / 路径 / RESP 等 8bit 边界绕过；公式 `chr((k<<8)|T)` |
+| `知识库/ghost-bits-cast-test.md` | **Java char→byte 窄化（Ghost Bits / Cast Attack）**：`char`(16bit) 转协议字节时的截断特性，用于走私 / 邮件头 / 路径 / RESP 等 8bit 边界绕过；公式 `chr((k<<8)\|T)` |
 | `知识库/el-injection-test.md` | **EL / SpEL / OGNL 表达式注入**：`${7*7}` `#{7*7}` 多语言探针 → 引擎识别 → 沙箱逃逸 → RCE（Java 系后台、报表、模板常见）|
 | `知识库/insecure-scm-test.md` | **源码与配置泄露**：`.git` / `.svn` / `.idea` / `.DS_Store` / `WEB-INF` 等路径速查与还原手法（属信息泄露子类，单独成篇）|
 | `知识库/crlf-injection-test.md` / `hpp-test.md` / `http2-attacks-test.md` | **几乎不交**：纯 CRLF、参数污染、HTTP/2 各自不写；导致越权/注入按那个洞走 `idor-test.md` / `injection-test.md`，走私走 `http-smuggling-test.md` |

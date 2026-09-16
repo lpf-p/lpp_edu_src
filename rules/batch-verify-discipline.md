@@ -27,6 +27,19 @@
 | Druid | elog 错误页含 `druid" not defined in elogd.cfg` | 真正 Druid 监控页（`/druid/index.html` 含 stat 等） |
 | Actuator | — | 特定端点返回结构化 JSON（如 `{"status":"UP"}`），非通用 404 |
 
+**⚠️ 通用陷阱：裸单词匹配（2026-09-16 实测踩坑，写自己工具时又犯了一次）**
+
+工具里用**大小写不敏感的子串匹配**去认产品名，几乎必然假阳性。实测踩到的：
+
+| 裸单词 | 实际误中 |
+|---|---|
+| `indico` | **`indicator`** / `indicating` / `indicative` —— 任何含 "indico" 的英文词 |
+| `elog` | 任意含 `elog` 的词（含 `elogd.cfg`） |
+| `WordPress` | 前端注释 / 无关文案里的字样 |
+| `gitlab` / `jenkins` | JS bundle 里的字符串常量 |
+
+**修法**：① 默认**大小写敏感**；② 优先用**结构性串**（`/indico/`、`ELOG - `、`wp-content`、`/assets/gitlab`）；③ 只在标识本身足够独特时才用裸单词（如 `ecology_JSessionid`、`mattermost`）。
+
 ### 1.3 单请求范式
 
 每个候选 path 一次 curl 同时取头 + 体 + 状态码，避免每条 4 次请求拖慢（实测 4 次/条跑 261 主机要 23 分钟且 incomplete）：

