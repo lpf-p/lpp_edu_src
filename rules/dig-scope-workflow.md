@@ -595,6 +595,10 @@ curl -s "https://<host>/" | grep -oE 'src="[^"]+"' | head
 
 拿到 `Set-Cookie` / `X-Powered-By` / `Location` / `title` 后 → 查 `知识库/recon-fingerprint-cdn-wildcard.md` §1.3（国产系统指纹表）→ **认到厂商就直接进对应厂商模块**，别再从头跑字典。
 
+**跟跳 / 读 3xx 的两点纪律（2026-09-16 吸收）**：
+1. **别只看 Location，要读 3xx 响应体**。不少后台**先把页面 HTML 渲染进 body、再发 302 跳 /login**——浏览器自动跳走看不到，但 body 已随包发出。对 `/admin/`、`/manage/`、`/backend/`、`/sys/` 等路径发单个 GET，**直接读 301/302 的 body**：含「后台管理中心 / 管理员登录 / 重置管理员密码」等字样即命中 `未授权后台泄露`（详见 `rules/test-scope-boundary.md` §四/§八）。本技能 `follow_redirects.py` 默认只跟 `sz<300` 的纯跳转，**这种大 body 的 302 会被它跳过**——要确认须用 `fingerprint_markers.classify` 直接扫保存的 `_raw` body，或单独 GET 后读 body。
+2. **307/308 保留原请求方法，301/302 默认转 GET**。手动构造重放/续探时别弄错方法（尤其 POST 登录类接口遇到 307/308 要保持 POST，否则被服务端当 GET 处理而失败）。
+
 **⚠️ 第 0 步必须同时判「有没有防护」（2026-09-16 实测补）**：国内目标的防护**经常在基线请求阶段就把你挡在外面**，不先判会白跑一轮。
 
 | 见到 | 判为 | 处置 |
