@@ -305,7 +305,7 @@ Application uses Host header in responses/behavior?
 ├── Test SSRF via Host routing
 │   ├── Host: 127.0.0.1 → internal service?
 │   ├── Host: internal-hostname.local → internal routing?
-│   └── Host: 169.254.169.254 → cloud metadata?
+│   └── Host: 169.254.169.254 → cloud metadata?（**只看到「可达」即停，不取凭证**，见 `rules/test-scope-boundary.md` §五）
 │
 └── No Host-based behavior found
     └── Check if app uses Host in server-side operations

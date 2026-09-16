@@ -1,5 +1,5 @@
 ---
-name: src-6k-hunting
+name: lpp_edu_src
 description: "SRC 漏洞挖掘 + 白盒 0day 审计全流程技能。覆盖国内大厂、中小企业、政府/教育/医疗等目标类型。包含：JS 逆向接口发现、越权/注入/逻辑漏洞测试、WAF 绕过、自由跳资产测绘（FOFA）、白盒代码审计（Linux Kernel/Chromium/Laravel/Spring/Django）、中文 SRC 报告生成。当用户提到以下任意关键词时必须触发：SRC、漏洞挖掘、渗透测试某个网站/平台/APP、白帽子测试、找漏洞、挖 src、挖 SRC、挖某集团、挖某某（「挖」后面跟集团/品牌名，没给 URL 也算）、JS 逆向找接口、越权测试、WAF 绕过、写漏洞报告、代码审计、0day、白盒审计、源码审计、审计这个项目。即使用户只说「帮我测一下这个站」或「这个平台有没有漏洞」也要触发。用户说「挖」+ 任何集团/品牌名：起手短表 + 自由跳。磁盘有 `*src经验.md` 才开专篇，没有不算缺。"
 agent_created: true
 ---
@@ -20,7 +20,7 @@ agent_created: true
 ## 本技能根目录
 
 ```
-C:/Users/36193/.workbuddy-ai/skills/src-6k-hunting
+C:/Users/36193/.workbuddy-ai/skills/lpp_edu_src
 ```
 
 下文所有 `rules/xxx.md`、`知识库/xxx.md` 引用均**相对本目录**。批量探测脚本在 `tools/`（探根 / 分类 / 跟一跳验证，判据表外置）。

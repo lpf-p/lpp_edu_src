@@ -130,7 +130,7 @@ PoC：
 | 认证与会话 | 登录绕过、会话固定、Token 泄露、OAuth、JWT |
 | 越权 | 水平 IDOR、垂直越权、多租户隔离失效（有会话最低探针见 `dig-scope` §4.2.3） |
 | 注入 | SQLi、NoSQLi、LDAP、XPath、SSTI、表达式注入 |
-| SSRF | 内网、云元数据、协议、DNS Rebinding |
+| SSRF | 内网（单端口证明可达）、协议、**外带 DNSLog**；**云元数据已禁**（见 `test-scope-boundary.md` §五）、DNS Rebinding 只做概念说明不打真实目标 |
 | RCE | 反序列化、命令/代码注入、文件包含 |
 | 文件 | 读写删、路径穿越（别停在能传能下，跟业务越权/可执行链） |
 | 前端 | XSS、CSRF、postMessage（CORS 不挖） |
