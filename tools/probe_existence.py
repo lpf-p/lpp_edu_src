@@ -54,6 +54,48 @@ CHALLENGE_KEYS = ("webdriver", "stripBOM", "navigator[", "challenge", "verify yo
                   "人机", "滑块", "安全检查", "请稍候")
 MASKED_SERVER = ("******", "*", "Server", "server")
 
+# 两段式公共后缀（取根域时要多留一段）
+MULTI_LABEL_SUFFIX = ("edu.cn", "ac.cn", "com.cn", "org.cn", "gov.cn", "net.cn",
+                      "co.jp", "co.uk", "com.hk", "com.tw", "com.au", "com.sg")
+
+
+def guess_root(host):
+    """单机猜根域。`www.**.edu.cn` -> `xxx.edu.cn`（两段后缀留三段）；
+    `a.b.example.com` -> `example.com`（普通后缀留两段）。
+
+    ⚠️ 单机推断天然有歧义：`a.gov.cn` 到底是「gov.cn 下的 host a」还是「根域 a.gov.cn」，纯字符串分不出
+    （`xxx.edu.cn` 恰好是前者形态却应判为根域）。所以**批量时一律优先用 `common_root(hosts)`**，
+    本函数只作单机兜底；拿不准就 `--root` 显式指定。
+    """
+    parts = host.split(".")
+    if len(parts) <= 2:
+        return host
+    for suf in MULTI_LABEL_SUFFIX:
+        n = suf.count(".") + 1
+        if ".".join(parts[-n:]) == suf and len(parts) > n:
+            return ".".join(parts[-(n + 1):])
+    return ".".join(parts[-2:])
+
+
+def common_root(hosts):
+    """取全部主机的公共后缀作为根域，要求 >= 2 段。没有公共根域时返回 ""（退回 guess_root）。
+
+    例：['a.**.edu.cn','www.**.edu.cn'] -> 'xxx.edu.cn'
+        ['a.example.com','b.example.com']  -> 'example.com'
+        ['a.**.edu.cn','b.other.example.com'] -> ''（无公共根域）
+    """
+    if not hosts:
+        return ""
+    parts_list = [h.split(".") for h in hosts]
+    minlen = min(len(p) for p in parts_list)
+    n = 0
+    while n < minlen - 1:
+        cand = {p[-(n + 1)] for p in parts_list}
+        if len(cand) != 1:
+            break
+        n += 1
+    return ".".join(parts_list[0][-n:]) if n >= 2 else ""
+
 
 def fetch(url, timeout=8):
     """返回 (status, length, sha1_12, server, body_head, body_text)。失败返回 status='ERR'。"""
@@ -96,7 +138,7 @@ def is_gate_page(st, server, head, body):
 
 
 def probe(host, rand, timeout=8, sleep=1.0, root=""):
-    """probe 一台。root 缺省从 host 取后三段（a.b.example.com -> example.com）。"""
+    """probe 一台。root 缺省用 guess_root 推（www.**.edu.cn -> xxx.edu.cn）。"""
     try:
         ip = socket.gethostbyname(host)
     except Exception:
@@ -104,8 +146,7 @@ def probe(host, rand, timeout=8, sleep=1.0, root=""):
                 "why": "DNS 无记录", "tgt": None, "hbl": None, "pbl": None}
 
     if not root:
-        parts = host.split(".")
-        root = ".".join(parts[-3:]) if len(parts) >= 3 else host
+        root = guess_root(host)
 
     hbl = fetch("https://zzz-%s.%s/" % (rand, root), timeout)          # 主机级基线
     tgt = fetch("https://%s/" % host, timeout)                          # 目标
@@ -160,14 +201,15 @@ def main():
 
     os.makedirs(a.outdir, exist_ok=True)
     rand = "".join(random.choices(string.ascii_lowercase + string.digits, k=16))
+    auto_root = common_root(hosts)
 
     print("# 第 -1 步 判存在性 | 主机 %d 台 | rand=%s | 根域=%s"
-          % (len(hosts), rand, a.root or "自动"))
+          % (len(hosts), rand, a.root or auto_root or "逐台 guess_root"))
     print("# 纪律：只发 GET、不带凭据、单轮、间隔 %.1fs\n" % a.sleep)
 
     rows = []
     for h in hosts:
-        r = probe(h, rand, a.timeout, a.sleep, a.root)
+        r = probe(h, rand, a.timeout, a.sleep, a.root or auto_root)
         rows.append(r)
         t = r["tgt"]
         print("%-34s %-16s %-22s %s" % (
