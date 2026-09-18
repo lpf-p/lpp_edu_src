@@ -310,6 +310,6 @@ JS 逆向细节 → `知识库/js-reverse-guide.md`。打开目标按 `dig-scope
 | 浏览器 | `playwright-dual-slot.mjs` 双槽 Playwright MCP | 内置 `agent-browser` 技能 |
 | FOFA 资产搜索 | `~/.grok` 无（原靠 MCP） | **fofa.info 网页手动跑**（语法见 `知识库/recon-methodology.md` + 各案例库）；无 key 可用，无配额走 DNS+HTTP+crt 兜底 |
 | 路径引用 | `~/.grok/...` | 已全部改写为本技能根目录绝对路径 |
-| **本机 MCP 清单与合规分级** | 无（原靠 `jshookmcp` 一类外部包） | **`mcp-servers/能力索引.md`（仅本地副本有）** —— 记本机 7 个 MCP 的实测状态与红线：`tianhu`（天狐，50 个攻击/后渗透工具）在 edu SRC 语境**整体禁用**，只在 `rules-local/authorized-pt-playbook.md` 授权 PT 语境用；`yakit` 的 `query_http_flow` 读**本地历史流量**是本机**最合规**的情报源（零新流量） |
+| **本机 MCP 清单与合规分级** | 无（原靠 `jshookmcp` 一类外部包） | **`mcp-servers/能力索引.md`（仅本地副本有）** —— 记本机 8 个 MCP 命名空间的实测状态与红线（4 个已实测 + 4 个待查）：`tianhu`（天狐，50 个攻击/后渗透工具）在 edu SRC 语境**整体禁用**，只在 `rules-local/authorized-pt-playbook.md` 授权 PT 语境用；`yakit` 的 `query_http_flow` 读**本地历史流量**是本机**最合规**的情报源（零新流量） |
 
 用法、目录说明与红线见 `README.md`。
