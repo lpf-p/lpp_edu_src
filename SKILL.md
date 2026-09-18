@@ -33,9 +33,10 @@ agent_created: true
 2. **锁面（用户给了资产清单 / 域名清单）先读** `rules/asset-existence-and-coverage.md`（**资产存在性判据 + 覆盖率账本 + 判据留痕**）：**先判每台存不存在，再谈测不测**。状态码完全不可信（403/404/200 各骗过一次）——不做这步就会把力气花在不存在的资产上（方向错），又漏掉藏在 404 后面的真站点。⚠️ 该文件的产出属**判据**、**不受 `hunt-iter` 漏洞门槛约束**。
 3. **写报告前读** `rules/vuln-report-format.md`（报告版式唯一来源，含 §三 EDUSRC 特别条款）。
 4. **动手前查** `rules/test-scope-boundary.md`（各类漏洞最大测试范围与停止线：测到哪算到底、越过就出事）。
-5. **落盘前读** `rules/desktop-task-folder.md`（任务目录约定）。
-6. **批量目标（多资产 / 模式库全量过 / 别人给的 N 份报告 zip）先读** `rules/batch-verify-discipline.md`（假阳性控制 + 批量报告鉴定；泛解析目标还要看它的「主机级基线」）。
-7. 其余 rules 按需读，见下方速查表。
+5. **要给一个点下结论前读** `rules/verdict-states.md`（**判定状态词只有五个**：`confirmed` / `suspicious` / `not_vulnerable` / `blocked` / `needs`；**只有 `confirmed` 进报告正文**，其余进 `dig-state.json`；**标 `not_vulnerable` 必须先写 `unruled_out`**）—— 这是「测深了没有」的判定闸，也是报告里不出现「疑似 / 应该是」的来源。
+6. **落盘前读** `rules/desktop-task-folder.md`（任务目录约定，含 **`dig-state.json` 断点续跑**）。
+7. **批量目标（多资产 / 模式库全量过 / 别人给的 N 份报告 zip）先读** `rules/batch-verify-discipline.md`（假阳性控制 + 批量报告鉴定；泛解析目标还要看它的「主机级基线」）。
+8. 其余 rules 按需读，见下方速查表。
 
 ## 规则速查表（短名 → 文件）
 
@@ -55,11 +56,12 @@ agent_created: true
 | `cors-vuln-report-priority` | `rules/cors-vuln-report-priority.md` | CORS：不挖 |
 | `batch-verify` / `batch-verify-discipline` | `rules/batch-verify-discipline.md` | **批量探测假阳性控制 + 批量报告鉴定**（多资产/模式库全量过时必读；含泛解析目标的**主机级基线**） |
 | `asset-existence` / `asset-existence-and-coverage` | `rules/asset-existence-and-coverage.md` | **资产存在性判据（双轨四象限）+ 覆盖率账本 + 判据留痕**（锁面有清单时进站前必读；产出属判据、**不受漏洞门槛约束**） |
+| `verdict-states` | `rules/verdict-states.md` | **判定状态词（五个）+ 三层确认门 + 反早闭 `unruled_out`**（要给一个点下结论 / 写报告前必读；产出属判据、**不受漏洞门槛约束**） |
 | `playwright-browser-mcp` | `rules/playwright-browser-mcp.md` | 浏览器走 `agent-browser` |
 | `test-scope-boundary` / `test-scope` | `rules/test-scope-boundary.md` | **各类漏洞的最大测试范围与停止线**（动手前查：测到哪算到底、越过就出事；含 EDUSRC 不挖清单） |
 | `sweep-tools` | `tools/README.md` | **批量探根 / 指纹分类 / 跟一跳验证脚本**（判据表外置 `tools/fingerprint_markers.py`；认入口类资产必配，纪律：只 GET、不带凭据、限 4 跳） |
 
-冲突时：挖什么 → `src-value`；报告 → 只跟 `vuln-report-format`；CORS 不挖 → `cors-vuln-report-priority`；白盒 → `researcher-blackbox-whitebox`；**范围/持续挖** → **`dig-scope-workflow`（压过「等继续」）**；**批量探测判据** → `batch-verify-discipline`；**资产存在性与「测完」判据** → `asset-existence-and-coverage`；**能力迭代落盘** → `hunt-iter`（不压过范围）。
+冲突时：挖什么 → `src-value`；报告 → 只跟 `vuln-report-format`；CORS 不挖 → `cors-vuln-report-priority`；白盒 → `researcher-blackbox-whitebox`；**范围/持续挖** → **`dig-scope-workflow`（压过「等继续」）**；**批量探测判据** → `batch-verify-discipline`；**资产存在性与「测完」判据** → `asset-existence-and-coverage`；**判定状态与反早闭** → `verdict-states`；**能力迭代落盘** → `hunt-iter`（不压过范围）。
 **skill / 知识库** 与 rules 冲突 → **以 rules 为准**（尤其 `知识库/cors-test.md` 仅资料、SRC 禁用）。
 
 ---
@@ -88,13 +90,18 @@ agent_created: true
 | 说不清"测完了没有"（**收不了工**） | **建资产账本**：每台一行，`判定` 列只允许四值且**不许有空缺**；**"存在"与"测过"分列** | 同上 §6「收工三联」 |
 | 判据用错还静默改口（**下次重踩**） | **判据留痕**：失败版脚本**不删**、判据演进成文、改结论必须写"原判 X 因 Y 改 Z" | 同上 §7 |
 | 把范围外的引用也打了（**越界**） | 「页面在范围内」≠「页面引用的主机也在范围内」→ **只登记、零请求** | 同上 §8 |
+| 试了一种姿势就判"安全"，真漏了还以为测完了（**假阴性**） | **反早闭**：标 `not_vulnerable` 前先列 `unruled_out`（还没排除什么）；**不确定就别说安全**，归 `suspicious` / `needs` | `verdict-states` §三 |
+| 报告里全是「疑似 / 可能 / 应该是」（**没结论**） | **五个状态词**收口：只有 `confirmed` 进正文，其余进 `dig-state.json` | `verdict-states` §二/§四 |
+| 跨会话接不上、靠人复述"停在哪"（**续不了跑**） | **`dig-state.json`**：`stage` / `doing_host` / `next` 每轮写回，跨会话开工先读 | `desktop-task-folder` §1.2 |
 
-**收工硬判据（三条全清才叫"测完"）：**
+**收工硬判据（全清才叫"测完"）：**
 
 ```
 [ ] 资产账本「判定」列无空缺
 [ ] 种子队列 pending = 0（blocked 不算 pending）
 [ ] 确证存在的资产，逐个有矩阵记录（或无入口 + 写明原因）
+[ ] 有业务逻辑的功能点过了 12 维，coverage_note 三问已答（dig-scope §4.1.4）
+[ ] 报告里没有「疑似 / 应该是」；每条 not_vulnerable 都带 unruled_out（verdict-states）
 ```
 
 ### ⚠️ 能力自检（用之前先过一遍）

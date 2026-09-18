@@ -62,8 +62,9 @@ SRC 挖洞 + 白盒 0day 审计的技能包（WorkBuddy skill 格式）。
 | 1.5 | **判存在性**（锁面有资产清单时必做）：厂商公布的清单里**混着空壳 / 默认页 / 泛记录**。逐台「响应体 `sha1` vs 同批实时双基线」定论，**状态码不可信**；逐台落资产账本 | `rules/asset-existence-and-coverage.md` |
 | 2 | **进站指纹**：每个种子都要过 —— 认指纹 / 判 CDN / 判泛解析。**不做这一步就开打 = 闭眼扔飞镖** | `知识库/recon-fingerprint-cdn-wildcard.md` |
 | 3 | **选模块打**：按目标特征查 `SKILL.md` 的「对得上再开」表，命中哪个开哪个文件 | `知识库/*.md`（见 `SKILL.md` 知识库目录表） |
+| 3.5 | **功能点过 12 维**（反查）：对登录 / 支付 / 审批 / 上传 / 权限 / 报表这类**有业务逻辑的功能点**，逐条问 12 个维度并**自己命威胁名**，补上类型矩阵漏掉的形态 | `rules/dig-scope-workflow.md` §4.1.4 |
 | 4 | **落报告**：中危及以上确认即落 `报告/` | `rules/vuln-report-format.md` |
-| 5 | **收工自查**：资产账本判定列无空缺 + 种子队列 pending = 0 + 确证存在的逐个有矩阵记录 | `rules/asset-existence-and-coverage.md` §6 |
+| 5 | **收工自查**：资产账本判定列无空缺 + 种子队列 pending = 0 + 确证存在的逐个有矩阵记录 + **功能点 12 维过完、`coverage_note` 三问已答、报告里无「疑似」、每条 `not_vulnerable` 都带 `unruled_out`** | `rules/asset-existence-and-coverage.md` §6 + `rules/verdict-states.md` |
 
 ### 三条最容易用歪的纪律
 
@@ -97,7 +98,7 @@ python tools/follow_redirects.py ./sweep_out/result.tsv --raw-dir ./sweep_out/_r
 ```
 lpp_edu_src/
 ├── SKILL.md                    # 入口：路由表 + 红线 + 规则速查表（唯一自动加载的文件）
-├── rules/                      # 12 份运行时规则（流程与纪律，不常驻，按「启动必读」主动读）
+├── rules/                      # 15 份运行时规则（流程与纪律，不常驻，按「启动必读」主动读）
 ├── 知识库/                     # 90 份专题：打法 + 案例库提炼 + 厂商系统速查
 ├── tools/                      # 批量探根 / 指纹分类 / 跟一跳验证脚本（判据表外置）
 ├── check_desensitize.py        # push 前自检：公开版是否残留未打码的活目标
@@ -130,6 +131,7 @@ python check_desensitize.py . --update-baseline  # 首次 / 大改后定基（�
 
 ## 五、最近更新
 
+- **2026-09-18（补）**：**新增 `rules/verdict-states.md`**（判定状态词五个 + 三层确认门 + 反早闭 `unruled_out`）+ **`dig-state.json` 断点续跑**（`desktop-task-folder` §1.2）+ **功能点 12 维反查**（`dig-scope-workflow` §4.1.4）。来源：对标一个外部的授权渗透工作台 skill 后吸收，补上本技能原来缺的**假阴性那一半** —— `batch-verify-discipline` 管「别把假的当成真的」（假阳性），`verdict-states` 管「**别把真的漏了、还当测完了**」（假阴性）。同步：`vuln-report-format` §二 增「判定状态 / 盲区去哪」两行、明确**只有 `confirmed` 落盘**；`desktop-task-folder` 开新任务必须建 `dig-state.json`（⛔ 凭据实值不进）；`hunt-iter` 明确判定类产出同样**不受漏洞门槛约束**；`dig-scope-workflow` §4.3 加两条换站下限 + §5 自检两条。**核心一句：一个点测完只有五种说法，只有 `confirmed` 进报告正文，标 `not_vulnerable` 必须先写 `unruled_out`。**
 - **2026-09-18**：**新增 `rules/asset-existence-and-coverage.md`**（资产存在性判据「双轨四象限」+ 覆盖率账本 + 判据留痕制度 + 范围判定）—— 由一次十四轮实战被动总结：历轮最值钱的产出全在**判据层**，却因 `hunt-iter` 门槛只收"已落报告的高危/严重"而**一条都进不了库**，导致"用了 skill 反而更浅"。据此同步：`hunt-iter` 明确**判据类产出不受漏洞门槛约束**；`dig-scope-workflow` §4.0 增「第 -1 步 判存在性」+ §0.1「锁面必建资产账本」+ §5 自检两条；`batch-verify-discipline` §1.1 增**主机级基线**；`知识库/recon-fingerprint-cdn-wildcard.md` §2.5 新增「认平台只看 CNAME 后缀」+ §3.2/§3.3 升级为双轨四象限。**核心一句：状态码完全不可信（403/404/200 各被骗一次），只认响应体 `sha1` 与同批实时双基线的比对结果。**
 - **2026-09-16**：新增 `tools/` 四个脚本（批量探根 / 指纹分类 / 跟一跳验证，判据表外置到 `fingerprint_markers.py`）；`知识库/recon-fingerprint-cdn-wildcard.md` §1.3 补入 30 站实测校准的入口类判据——**root 只回 301/302 时厂商信息在跳转后的登录页上，必须跟一跳**（实测未定性站跟跳后 44% 拿到判据，但仍不充分）；补金智三个新判据、`Server: Server` = 同一款国产 SSL VPN 的硬判据。
 - **2026-09-15**：新增 `rules/batch-verify-discipline.md`（批量探测假阳性控制，实测把 24 条假阳压到 1 条）；`vuln-report-format.md` 增补 EDUSRC 特别条款（定性纪律 / 佐证合并不拆分 / 平台 15 条忽略规则自检）。

@@ -18,7 +18,7 @@ Desktop\{任务名}_SRC挖洞\
   资产\              ← 挖掘途中发现的「公网可挖 URL 资产」（域名/URL 清单）
   js\                ← 从站点提取/下载的 JS 源文件（分析用）
   报告\              ← 正式报告
-  {短名}_dig\        ← 脚本、queue、state、findings、日志、临时探测
+  {短名}_dig\        ← 脚本、queue、dig-state.json、findings、日志、临时探测
 ```
 
 **对照范例（必须对齐）：** `Desktop\{目标}_SRC挖洞\`
@@ -28,7 +28,7 @@ Desktop\{任务名}_SRC挖洞\
 | `资产/` | 公网可挖 URL/域名清单（挖掘途中发现并沉淀的目标资产：url 列表、子域、接口入口 URL、FOFA 导出里的可打面等）；**自由跳还必须有 `种子队列.md`**（业务名/品牌/SRC 域/全资域 + pending/doing/done，见 dig-scope §1.4；数量无上限）；**锁面还必须有 `资产账本.md`**（逐台存在性判定 + 覆盖率，见 `asset-existence-and-coverage` §6） | **禁止**塞提取的 `.js`；禁止报告、跑扫脚本 |
 | `js/` | 从目标站点**提取/下载**的 JS 文件（LinkFinder/手动抓包/批量下的前端包），供逆向接口用 | 禁止正式报告；禁止把「URL 资产清单」塞这里 |
 | `报告/` | 正式报告 `.md`（文件名=漏洞标题） | 脚本、state、半截日志、JS 原文 |
-| `{名}_dig/` | dig 脚本、queue/state/findings、验证小脚本、日志、临时探测；**开新任务必须有 `线程必读.md`（迭代闸，见 `hunt-iter`）** | 最终交付报告；**定稿的提取 JS 应落到 `js/`，不要只堆 dig 里当资产** |
+| `{名}_dig/` | dig 脚本、queue、`dig-state.json`、findings、验证小脚本、日志、临时探测；**开新任务必须有 `线程必读.md`（迭代闸，见 `hunt-iter`）** 与 **`dig-state.json`（断点续跑，见 §1.2）** | 最终交付报告；**定稿的提取 JS 应落到 `js/`，不要只堆 dig 里当资产** |
 | `README.md` | 结构说明、进度表、续跑命令、收录纪律；**必须有迭代闸一行**（见 `hunt-iter.md`） | — |
 
 ### 1.1 资产 vs js（强制分清）
@@ -40,6 +40,53 @@ Desktop\{任务名}_SRC挖洞\
 | 临时下载、半截、仅用于一次探测的 JS/HTML 缓存 | 可先在 `{名}_dig/`；**有分析价值的正式提取件 → 移入 `js/`** |
 
 **禁止（用户点名）：** 再把提取的 JS 丢进 `资产/`。
+
+### 1.2 `dig-state.json`（断点续跑 · 2026-09-18 补）
+
+> **为什么要有：** 挖站是长任务，跨会话、跨天、被压缩之后，**"停在哪、下一步测什么" 只在对话里**——对话一断就得靠人复述。
+> `线程必读.md` 是**给人看的**迭代闸；`dig-state.json` 是**给下一轮的你读的**进度闸。两份并存，不是替代。
+
+文件：`{任务根}/{名}_dig/dig-state.json`（一个任务一份，**不按 host 拆**）。
+
+```json
+{
+  "task": "{任务名}",
+  "mode": "锁面 | 自由跳",
+  "stage": "存在性 | 指纹 | 清单 | 矩阵 | 报告 | 自查",
+  "doing_host": "当前正在挖的 host（没有写 null）",
+  "seed_pending": 0,
+  "tested": [
+    {
+      "host": "webvpn.**.edu.cn",
+      "surface": "/xxx/login",
+      "threat": "认证与会话·验证码可复用",
+      "status": "not_vulnerable",
+      "unruled_out": "未排除：类型混淆（int/str 传参）、并发复用",
+      "coverage_note": "输入面：username/password/captcha 三个入参都测了；行为面：本功能点仅 1 个接口；深度面：只试了复用与省略。"
+    }
+  ],
+  "next": ["下一步要打的具体入口（一到三条，写 URL 级）"]
+}
+```
+
+**字段（只用这些，别加）**
+
+| 字段 | 作用 |
+|------|------|
+| `stage` | **断点主字段**：下轮开工先读它，从这一步接着走 |
+| `doing_host` | 半截站靠它接上，避免重新开矩阵 |
+| `seed_pending` | 自由跳的换种判据；与 `资产/种子队列.md` 的 pending 数一致 |
+| `tested[].status` / `unruled_out` | 状态词只认 `verdict-states.md` 的五个；`not_vulnerable` 必须带 `unruled_out` |
+| `tested[].coverage_note` | §4.1.4 的覆盖三问答案（输入面 / 行为面 / 深度面），**一句话一句**，不要表格 |
+| `next` | 只写**入口级**，一到三条；写多了等于没写 |
+
+**硬规矩：**
+
+1. **每轮收尾写回**（换 host、换种子、落报告、收工前各写一次）。
+2. **跨会话开工先读它**，再从 `stage` 与 `next` 接着走；**禁止**读完只记得用户原词。
+3. **⛔ 禁止写入任何凭据实值** —— Cookie / token / 密码 / 密钥一律不进本文件，只写 host、路径、参数名、状态词。凭据只在当轮内存里用（与 `vuln-report-format`「会话 Cookie 实值绝不进材料」同源）。
+4. **本文件不是报告也不是短表**：不写危害、不定级、不进 `报告/`；写不写报告只认 `vuln-report-format`，进不进短表只认 `hunt-iter`。
+5. 早期任务没这份文件不追责；**开新任务必须建**（建一份带 `stage` 与空 `tested` 的骨架即可）。
 
 ---
 
@@ -54,6 +101,7 @@ Desktop\{任务名}_SRC挖洞\
 7. 桌面根 **禁止** 再落报告 `.md`、queue、state、零散 py/js。
 8. 用户已指定路径时以用户为准；未指定 → 本格式。
 9. **开新任务必须带迭代闸：** 起手建 `{名}_dig/线程必读.md`，写「迭代见 `hunt-iter.md`」。`README.md`、自由跳的 `资产/种子队列.md` 顶部钉同一句。拉子线程交付必须含迭代。条文只在 `hunt-iter.md`。
+10. **开新任务必须建 `dig-state.json`**（骨架即可：`task` / `mode` / `stage` / `doing_host` / `seed_pending` / `tested: []` / `next`）；**每轮收尾写回**，跨会话开工先读。⛔ 凭据实值绝不进本文件。条文只在 §1.2。
 
 ---
 
@@ -147,8 +195,9 @@ Desktop\{任务}_SRC挖洞\
 - [ ] 锁面是否有 `资产账本.md`，且「判定」列无空缺？（`asset-existence-and-coverage` §6）  
 - [ ] 报告是否只写在 `报告/`？  
 - [ ] dig 状态与脚本是否只在 `{名}_dig/`？  
+- [ ] **`dig-state.json` 是否建了、且本轮的 `stage` / `next` 已写回？里面**没有**任何 Cookie / token / 密码实值？**  
 - [ ] 有没有东西误落在桌面根？有则 **移入对应子夹**（不是删掉糊弄）
 
 ---
 
-**一句话：** 开新任务 = `README + 资产(公网URL) + js(提取JS) + 报告 + *_dig`；**JS 绝不进资产**。清理口径只认 `vuln-report-format`。
+**一句话：** 开新任务 = `README + 资产(公网URL) + js(提取JS) + 报告 + *_dig(线程必读 + dig-state.json)`；**JS 绝不进资产**；**凭据绝不进 dig-state**。清理口径只认 `vuln-report-format`。
