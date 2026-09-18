@@ -20,7 +20,7 @@ agent_created: true
 ## 本技能根目录
 
 ```
-C:/Users/36193/.workbuddy-ai/skills/lpp_edu_src
+~/.workbuddy-ai/skills/lpp_edu_src
 ```
 
 下文所有 `rules/xxx.md`、`知识库/xxx.md` 引用均**相对本目录**。批量探测脚本在 `tools/`（探根 / 分类 / 跟一跳验证，判据表外置）。
@@ -30,11 +30,12 @@ C:/Users/36193/.workbuddy-ai/skills/lpp_edu_src
 本技能由 Grok 移植而来。Grok 会把 `~/.grok/rules/` 全部常驻加载，WorkBuddy 不会——**规则需要你主动读**。因此：
 
 1. **进站前先读** `rules/dig-scope-workflow.md`（锁面/自由跳全流程，819 行，最重要的一份）与 `rules/src-value-hunting.md`（挖什么）。
-2. **写报告前读** `rules/vuln-report-format.md`（报告版式唯一来源，含 §三 EDUSRC 特别条款）。
-3. **动手前查** `rules/test-scope-boundary.md`（各类漏洞最大测试范围与停止线：测到哪算到底、越过就出事）。
-4. **落盘前读** `rules/desktop-task-folder.md`（任务目录约定）。
-5. **批量目标（多资产 / 模式库全量过 / 别人给的 N 份报告 zip）先读** `rules/batch-verify-discipline.md`（假阳性控制 + 批量报告鉴定）。
-5. 其余 rules 按需读，见下方速查表。
+2. **锁面（用户给了资产清单 / 域名清单）先读** `rules/asset-existence-and-coverage.md`（**资产存在性判据 + 覆盖率账本 + 判据留痕**）：**先判每台存不存在，再谈测不测**。状态码完全不可信（403/404/200 各骗过一次）——不做这步就会把力气花在不存在的资产上（方向错），又漏掉藏在 404 后面的真站点。⚠️ 该文件的产出属**判据**、**不受 `hunt-iter` 漏洞门槛约束**。
+3. **写报告前读** `rules/vuln-report-format.md`（报告版式唯一来源，含 §三 EDUSRC 特别条款）。
+4. **动手前查** `rules/test-scope-boundary.md`（各类漏洞最大测试范围与停止线：测到哪算到底、越过就出事）。
+5. **落盘前读** `rules/desktop-task-folder.md`（任务目录约定）。
+6. **批量目标（多资产 / 模式库全量过 / 别人给的 N 份报告 zip）先读** `rules/batch-verify-discipline.md`（假阳性控制 + 批量报告鉴定；泛解析目标还要看它的「主机级基线」）。
+7. 其余 rules 按需读，见下方速查表。
 
 ## 规则速查表（短名 → 文件）
 
@@ -52,12 +53,13 @@ C:/Users/36193/.workbuddy-ai/skills/lpp_edu_src
 | `security-research-context` | `rules/security-research-context.md` | 授权语境 |
 | `skill-as-boost` | `rules/skill-as-boost.md` | 自身 + skill 并用 |
 | `cors-vuln-report-priority` | `rules/cors-vuln-report-priority.md` | CORS：不挖 |
-| `batch-verify` / `batch-verify-discipline` | `rules/batch-verify-discipline.md` | **批量探测假阳性控制 + 批量报告鉴定**（多资产/模式库全量过时必读） |
+| `batch-verify` / `batch-verify-discipline` | `rules/batch-verify-discipline.md` | **批量探测假阳性控制 + 批量报告鉴定**（多资产/模式库全量过时必读；含泛解析目标的**主机级基线**） |
+| `asset-existence` / `asset-existence-and-coverage` | `rules/asset-existence-and-coverage.md` | **资产存在性判据（双轨四象限）+ 覆盖率账本 + 判据留痕**（锁面有清单时进站前必读；产出属判据、**不受漏洞门槛约束**） |
 | `playwright-browser-mcp` | `rules/playwright-browser-mcp.md` | 浏览器走 `agent-browser` |
 | `test-scope-boundary` / `test-scope` | `rules/test-scope-boundary.md` | **各类漏洞的最大测试范围与停止线**（动手前查：测到哪算到底、越过就出事；含 EDUSRC 不挖清单） |
 | `sweep-tools` | `tools/README.md` | **批量探根 / 指纹分类 / 跟一跳验证脚本**（判据表外置 `tools/fingerprint_markers.py`；认入口类资产必配，纪律：只 GET、不带凭据、限 4 跳） |
 
-冲突时：挖什么 → `src-value`；报告 → 只跟 `vuln-report-format`；CORS 不挖 → `cors-vuln-report-priority`；白盒 → `researcher-blackbox-whitebox`；**范围/持续挖** → **`dig-scope-workflow`（压过「等继续」）**；**批量探测判据** → `batch-verify-discipline`；**能力迭代落盘** → `hunt-iter`（不压过范围）。
+冲突时：挖什么 → `src-value`；报告 → 只跟 `vuln-report-format`；CORS 不挖 → `cors-vuln-report-priority`；白盒 → `researcher-blackbox-whitebox`；**范围/持续挖** → **`dig-scope-workflow`（压过「等继续」）**；**批量探测判据** → `batch-verify-discipline`；**资产存在性与「测完」判据** → `asset-existence-and-coverage`；**能力迭代落盘** → `hunt-iter`（不压过范围）。
 **skill / 知识库** 与 rules 冲突 → **以 rules 为准**（尤其 `知识库/cors-test.md` 仅资料、SRC 禁用）。
 
 ---
@@ -72,6 +74,34 @@ C:/Users/36193/.workbuddy-ai/skills/lpp_edu_src
 2. **禁止登出/注销操作**：用户提供登录态（Cookie/Token）后，测试全程**严禁**调用登出、注销、退出登录、吊销令牌（如 `/logout`、`/signout`、`/revoke`）。`dig-scope` §4.2.2 有号测接管同样禁止；**不测**「退出后会话还有效」。保持用户会话始终有效。改绑 / 改密过了立刻改回，不要把用户号改死。
 3. **CORS**：SRC 永久 **不挖**（`cors-vuln-report-priority`）。**勿开** `知识库/cors-test.md`。登录 / 重置 / 改绑仍测（`dig-scope` §4.2.2）。
 4. **凭证**：FOFA 在 fofa.info **网页手动跑**（语法见 `知识库/recon-methodology.md` 文首 + 各案例库 FOFA 语法）。本技能**不捆绑 fofa MCP、不要求任何 key**。若你自行配置 fofa key，**禁止**写进规则、知识库、报告或对话。
+
+---
+
+## 测完的判据（可验证的「深度」· 2026-09-18 补）
+
+> 来源：一次十四轮实战复盘。结论是 —— **深度不是"每台多打几枪"，是"每台都有结论 + 每个结论都有留痕"**。
+> "测了半天没洞"的真实原因，多数不是手法不行，而是**方向错了（在打不存在的资产）**或**说不出测完没有（所以又绕回去重测）**。
+
+| 病 | 药 | 落点 |
+|---|---|---|
+| 把不存在的资产当资产打（**方向错**） | **进站前先判存在性**：响应体 `sha1` vs **同批实时双基线**（主机级 + 路径级）→ 四象限定论。**状态码不可信**：403/404/200 都会骗人 | `asset-existence-and-coverage` §1~§5 |
+| 说不清"测完了没有"（**收不了工**） | **建资产账本**：每台一行，`判定` 列只允许四值且**不许有空缺**；**"存在"与"测过"分列** | 同上 §6「收工三联」 |
+| 判据用错还静默改口（**下次重踩**） | **判据留痕**：失败版脚本**不删**、判据演进成文、改结论必须写"原判 X 因 Y 改 Z" | 同上 §7 |
+| 把范围外的引用也打了（**越界**） | 「页面在范围内」≠「页面引用的主机也在范围内」→ **只登记、零请求** | 同上 §8 |
+
+**收工硬判据（三条全清才叫"测完"）：**
+
+```
+[ ] 资产账本「判定」列无空缺
+[ ] 种子队列 pending = 0（blocked 不算 pending）
+[ ] 确证存在的资产，逐个有矩阵记录（或无入口 + 写明原因）
+```
+
+### ⚠️ 能力自检（用之前先过一遍）
+
+1. **规则不会自动加载** —— 不读「启动必读」= 技能只加载了个目录，**这就是"用了 skill 反而更浅"的常见原因**。
+2. **技能没出现在 skill 列表里 = 目录入口问题**（实体在别的数据目录 / 需要重开会话），不是"技能不存在"。先确认加载，再动手。
+3. **判据类产出不许因为"不是漏洞"就丢** —— 丢掉它，下次换站会把同一批假资产再打一遍。
 
 ## 自由跳节奏红线（与 `rules/dig-scope-workflow.md` §1.0.1 / §1.6 对齐 · 不可违反）
 

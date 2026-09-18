@@ -59,15 +59,18 @@ SRC 挖洞 + 白盒 0day 审计的技能包（WorkBuddy skill 格式）。
 |---|---|---|
 | 0 | **授权与范围**：确认目标在 SRC 公布范围内 / 自有资产 / 有书面授权。三者都不成立就停 | `rules/security-research-context.md` |
 | 1 | **资产测绘**：起手落盘种子队列（业务名 + SRC 范围域 + 全资子公司域，禁止只有一条）；一种子闭环，挖完再换 | `rules/dig-scope-workflow.md` §1.0.1 |
+| 1.5 | **判存在性**（锁面有资产清单时必做）：厂商公布的清单里**混着空壳 / 默认页 / 泛记录**。逐台「响应体 `sha1` vs 同批实时双基线」定论，**状态码不可信**；逐台落资产账本 | `rules/asset-existence-and-coverage.md` |
 | 2 | **进站指纹**：每个种子都要过 —— 认指纹 / 判 CDN / 判泛解析。**不做这一步就开打 = 闭眼扔飞镖** | `知识库/recon-fingerprint-cdn-wildcard.md` |
 | 3 | **选模块打**：按目标特征查 `SKILL.md` 的「对得上再开」表，命中哪个开哪个文件 | `知识库/*.md`（见 `SKILL.md` 知识库目录表） |
 | 4 | **落报告**：中危及以上确认即落 `报告/` | `rules/vuln-report-format.md` |
+| 5 | **收工自查**：资产账本判定列无空缺 + 种子队列 pending = 0 + 确证存在的逐个有矩阵记录 | `rules/asset-existence-and-coverage.md` §6 |
 
 ### 三条最容易用歪的纪律
 
 1. **规则不会自动加载。** Grok 版会把 `~/.grok/rules/` 全部常驻，WorkBuddy 只加载 `SKILL.md`。所以 `SKILL.md` 里列了「启动必读」清单 —— **进站前**读 `dig-scope-workflow.md` + `src-value-hunting.md`，**写报告前**读 `vuln-report-format.md`。不读 = 技能只加载了个目录。
 2. **自由跳不许停工问。** 模糊目标且用户没叫停时，禁止问「要不要继续？」「其他品牌要不要也挖？」。一轮搜完 ≠ 任务结束，种子队列还有 pending 就不能以问句收尾。
 3. **报告版式只有一个来源。** 正式报告只认 `rules/vuln-report-format.md`（含 EDUSRC 特别条款），不要用自己习惯的模板。
+4. **技能没出现在 skill 列表里，先查目录入口，别急着说"技能不存在"。** 实体放在 `~/.workbuddy-ai/skills/` 而会话只加载 `~/.workbuddy/skills/` 时，技能**静默不加载**（不报错、不提示）。修法：把关键 skill 用 **Windows 目录联接**接入当前目录，一份实体两个入口（`cmd /c 'mklink /J "<当前目录>\skills\<name>" "<原目录>\skills\<name>"'`）；**新建/联接后需重开会话**才会出现在列表里。
 
 ### tools/ 批量脚本（可选）
 
@@ -98,6 +101,7 @@ lpp_edu_src/
 ├── 知识库/                     # 90 份专题：打法 + 案例库提炼 + 厂商系统速查
 ├── tools/                      # 批量探根 / 指纹分类 / 跟一跳验证脚本（判据表外置）
 ├── check_desensitize.py        # push 前自检：公开版是否残留未打码的活目标
+├── mcp-servers/                # 可选 MCP 定义（存档，不参与运行）
 └── reference/                  # 仅存档，不参与运行
 ```
 
@@ -126,6 +130,7 @@ python check_desensitize.py . --update-baseline  # 首次 / 大改后定基（�
 
 ## 五、最近更新
 
+- **2026-09-18**：**新增 `rules/asset-existence-and-coverage.md`**（资产存在性判据「双轨四象限」+ 覆盖率账本 + 判据留痕制度 + 范围判定）—— 由一次十四轮实战被动总结：历轮最值钱的产出全在**判据层**，却因 `hunt-iter` 门槛只收"已落报告的高危/严重"而**一条都进不了库**，导致"用了 skill 反而更浅"。据此同步：`hunt-iter` 明确**判据类产出不受漏洞门槛约束**；`dig-scope-workflow` §4.0 增「第 -1 步 判存在性」+ §0.1「锁面必建资产账本」+ §5 自检两条；`batch-verify-discipline` §1.1 增**主机级基线**；`知识库/recon-fingerprint-cdn-wildcard.md` §2.5 新增「认平台只看 CNAME 后缀」+ §3.2/§3.3 升级为双轨四象限。**核心一句：状态码完全不可信（403/404/200 各被骗一次），只认响应体 `sha1` 与同批实时双基线的比对结果。**
 - **2026-09-16**：新增 `tools/` 四个脚本（批量探根 / 指纹分类 / 跟一跳验证，判据表外置到 `fingerprint_markers.py`）；`知识库/recon-fingerprint-cdn-wildcard.md` §1.3 补入 30 站实测校准的入口类判据——**root 只回 301/302 时厂商信息在跳转后的登录页上，必须跟一跳**（实测未定性站跟跳后 44% 拿到判据，但仍不充分）；补金智三个新判据、`Server: Server` = 同一款国产 SSL VPN 的硬判据。
 - **2026-09-15**：新增 `rules/batch-verify-discipline.md`（批量探测假阳性控制，实测把 24 条假阳压到 1 条）；`vuln-report-format.md` 增补 EDUSRC 特别条款（定性纪律 / 佐证合并不拆分 / 平台 15 条忽略规则自检）。
 

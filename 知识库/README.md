@@ -146,7 +146,7 @@
 
 **2026-09-16 第四轮实测（234 个高校统一身份认证 / WebVPN 资产 · 用外部资产表补全「入口类系统」指纹）**：用户提供 470 行资产表（235 个 IP 簇，title 全是「统一身份认证」）。按 IP 分簇、每簇取 1 代表，**单请求 GET 实测 234 个**（非破坏性）。本轮最大收获是补上了**「WebVPN」这一类系统** —— 此前技能里几乎空白。
 
-① **`recon-fingerprint-cdn-wildcard.md` §1.3 新增 2 行 + 更新金智行**：**网瑞达 WebVPN**（⭐ 高校电子资源访问主力）—— **URL 结构 `/http/<hex>/`，`<hex>` 以 `77726476706e69737468656265737421` 开头**，该串是**硬编码 IV**，hex→ASCII = **`wrdvisthebest!`**（`wrd` = 网瑞达）；cookie **`wengine_vpn_ticket<域名去点>`**（如 `wengine_vpn_ticketwebvpn_qdu_edu_cn`，**cookie 名里直接编码了域名**）；**实测 10 站，10/10 全部 `Server: none`**。其他 WebVPN：`Server: Sangine` + `:8118`；**`Server: Server`（字面量）实测 8/8 全是 WebVPN**；`/users/sign_in` + `_astraeus_session`（Rails/Devise 栈）。金智行补实测判据：`Server: wisedu`（3 站，直接把产品名写 Server 头）、**`/lyuapServer/login?service=`（7 站，最普遍判据）**、`/new/index.html`（ehall 门户）、`/rsfw/sys/`。
+① **`recon-fingerprint-cdn-wildcard.md` §1.3 新增 2 行 + 更新金智行**：**网瑞达 WebVPN**（⭐ 高校电子资源访问主力）—— **URL 结构 `/http/<hex>/`，`<hex>` 以 `77726476706e69737468656265737421` 开头**，该串是**硬编码 IV**，hex→ASCII = **`wrdvisthebest!`**（`wrd` = 网瑞达）；cookie **`wengine_vpn_ticket<域名去点>`**（如 `wengine_vpn_ticketwebvpn_<域名去点>`，**cookie 名里直接编码了域名**）；**实测 10 站，10/10 全部 `Server: none`**。其他 WebVPN：`Server: Sangine` + `:8118`；**`Server: Server`（字面量）实测 8/8 全是 WebVPN**；`/users/sign_in` + `_astraeus_session`（Rails/Devise 栈）。金智行补实测判据：`Server: wisedu`（3 站，直接把产品名写 Server 头）、**`/lyuapServer/login?service=`（7 站，最普遍判据）**、`/new/index.html`（ehall 门户）、`/rsfw/sys/`。
 
 ② **`nday-watchlist-2026.md` §1 新增网瑞达 WebVPN 条目** —— 弱口令 **CNVD-2021-84288** + **登录后 RCE**（普通账户登录后访问 `1.1.1.1@127.0.0.1:8860` 返 `pong`）+ **默认 key/iv → 任意内网访问**。⚠️ 条目明确写「**只验不挖**」（证明内网可达即停手，不遍历内网、不下载数据）。
 

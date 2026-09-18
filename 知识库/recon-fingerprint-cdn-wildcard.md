@@ -44,7 +44,7 @@ whatweb / wappalyzer **认不出国内 SRC 的绝大多数系统**（站点群�
 
 **顺带（3 样本，2026-09-16）**：高校**实验室 / 课题组**站实测 3/3 是 **WordPress**（`lemon.**` / `nsec.**` / `perovskite.**`，正文 `wp-content` 命中数十次）。遇到 `*.lab.*` 或实验室/课题组域名，先试 `/wp-json/wp/v2/users`（用户枚举）、`/xmlrpc.php`（`pingback.ping` XXE，打法见 `edusrc-cases.md` §2.13.4）。
 
-**另（2026-09-16 修正，原判据有误导性）**：`Set-Cookie: route=<32 位 hex>` 原记「实测 5/5 与泛微 e-cology 同现，是泛微旁证」。**后续采样推翻了这条** —— 同批实测里 `zfxk.**.edu.cn`（正方教务，Tengine + ASP.NET，非泛微）与 `webproxy.**.edu.cn`（**网瑞达** WebVPN，cookie `wengine_vpn_ticketwebproxy_dhu_edu_cn`）**同样下发 `route`**。结论：**`route` 是 SLB / 反向网关的会话保持 cookie，与后端是什么产品无关，不能作为任何产品的旁证**。原「5/5 与泛微同现」只是样本同源（都是某批 OA 站）造成的巧合 —— 这是「相关不等于因果」的典型反例，已按新样本降级为**纯噪声**。
+**另（2026-09-16 修正，原判据有误导性）**：`Set-Cookie: route=<32 位 hex>` 原记「实测 5/5 与泛微 e-cology 同现，是泛微旁证」。**后续采样推翻了这条** —— 同批实测里 `zfxk.**.edu.cn`（正方教务，Tengine + ASP.NET，非泛微）与 `webproxy.**.edu.cn`（**网瑞达** WebVPN，cookie `wengine_vpn_ticket<域名去点>`）**同样下发 `route`**。结论：**`route` 是 SLB / 反向网关的会话保持 cookie，与后端是什么产品无关，不能作为任何产品的旁证**。原「5/5 与泛微同现」只是样本同源（都是某批 OA 站）造成的巧合 —— 这是「相关不等于因果」的典型反例，已按新样本降级为**纯噪声**。
 
 ### 1.3 国产系统指纹 → 该打什么（核心表）
 
@@ -66,7 +66,7 @@ whatweb / wappalyzer **认不出国内 SRC 的绝大多数系统**（站点群�
 | **WebVPN · 网瑞达线（⭐ 高校电子资源访问主力，也是通往内网的跳板）**：**URL 结构 `/http/<hex>/` 或 `/https/<hex>/`，且 `<hex>` 以 `77726476706e69737468656265737421` 开头** —— 该串是**硬编码 IV**，hex→ASCII = `wrdvisthebest!`（`wrd` = 网瑞达）；**`Set-Cookie: wengine_new_ticket`** / **`wengine_vpn_ticket<域名去点>`**（如 `wengine_vpn_ticketwebvpn_<域名去点>`、`wengine_vpn_ticket<域名去点>` —— **cookie 名里直接编码了域名，是铁证**）；`/wengine-auth/login`、`?fromUrl=`、正文 `wengine-vpn` / `aes-js.js` / `portal.js`；**`Server: none`（字面量）** | **网瑞达 WebVPN**（北京网瑞达科技有限公司，`wrdtech.com`，产品名「资源访问控制系统」）—— **2026-09-16 实测 234 个高校统一认证 / WebVPN 资产，网瑞达系 10 站（⭐ 10/10 全部 `Server: none`）**：`webvpn.**.edu.cn` / `wvpn.**.edu.cn` / `webvpn.**.edu.cn` / `webvpn.**.edu.cn` / `webvpn.**.edu.cn` / `testvpn.**.edu.cn` / `ngx.**.edu.cn` / `rsc.**.edu.cn` / `portal.**.edu.cn` / `*.vpn.**.edu.cn`，客户含多所双一流高校 | ⭐ **价值不在系统自身，在「进去之后」**：① **默认 key/iv 未改是普遍现象** —— 前端用 `aes-js` 做 AES-CFB，key/iv 常为默认值（加密脚本里变量名就叫 `wrdvpnKey` / `wrdvpnIV`），拿到后可**加密任意内网地址** → 拼 `/http/<enc>/` → **直接访问内网资源**；② URL 可带协议和端口（`/http-xxx/`、`/https-xxxx/`）；③ **RCE**：普通账户登录后访问 `1.1.1.1@127.0.0.1:8860`，返回 `pong` 即存在（返回 401 则不可，可把域名解析到 127 绕过）；④ **弱口令 CNVD-2021-84288**（可批量登录 VPN 前台）。详见 `nday-watchlist-2026.md` |
 | **WebVPN · 奇安信线（2026-09-16 采样）**：**title「奇安信VPN」**（正文含 `Qianxin` / 「奇安信」字样，**厂商名直接写在页面上，属直接证据不是推断**）+ `Server: nginx` + cookie 组 `PHPSESSID;user_lang_id;client_style;portal_param;3g_login;mod_pass_param` （其中 `3g_login` / `mod_pass_param` / `client_style` 是少见组合，可作辅助） | **奇安信 VPN**（原网康，Qianxin） | 实测 1 站（`vpn.**.edu.cn`，29833 B 登录页）。⚠️ **单样本**：title 明写厂商名所以定性可靠，但**上述 cookie 组是否通用未验证**，再遇到 1~2 个同款前不要把它当硬判据。**判奇安信优先看 title/正文的厂商字样，其次才是 cookie**。另：`vpn.**.edu.cn` 官网提供 EasyConnect 客户端但网关是另一款（见下方「三家厂商」），**别把 EasyConnect 当成深信服网关的证据** |
 | **WebVPN · 锐捷线（2026-09-16 新确证，第 4 款 WebVPN）**：**`Server: sslvpn 1.0`（字面量，注意是小写 `sslvpn` 不是 `SSL VPN`）** + **`Set-Cookie: rjsslvpnSID` / `rjsslvpnCF` / `rjsslvpnVER`**（`rj` = **锐捷**）+ title「**SSLVPN登录页面**」+ 响应体 **2465 B** | **锐捷网络 SSL VPN**（Ruijie，锐捷网络股份有限公司）—— 与网瑞达、深信服并列的第三家高校常见 VPN 厂商 | 实测 2 站同款（`vpn.**.edu.cn`、`sslvpn.**.edu.cn`，**响应体逐字节相同，均 2465 B**）；厂商旁证：西安理工大学信息化管理处官网《WebVPN 使用说明》明写「在『开始』菜单中搜索『SSL VPN』查找**锐捷 VPN** 快捷方式」，且该校 VPN 客户端下载页指向 `ruijie.com.cn`。**打法未实测，只写识别**：① 与网瑞达同属「资源代理型入口」，进去之后才是价值所在；② 三款 VPN 的区分要点：网瑞达看 `wengine_vpn_ticket*` cookie + `/http/<hex 以 77726476706e69737468656265737421 开头>/`，锐捷看 `rjsslvpn*` cookie + `Server: sslvpn 1.0`，深信服看 `/por/login.csp` / `EasyConnect` 客户端（如 `vpn.**.edu.cn` 系 openresty + 深信服登录页）。⚠️ **title「SSLVPN登录页面」不是锐捷独有**（别的厂商也用这个标题），**必须配 `rjsslvpn*` cookie 或 `sslvpn 1.0` 才定性** |
-| **WebVPN · 其他实现**：`Server: Sangine` + 端口 **`:8118`** + 跳转 `vpn.<域名>?redirect_uri=<原URL>` 或 `/controller/v1/public/verify?t=<JWT>`（JWT 内含 `gateway_ip` / `client_ip`）；**`Server: Server`（字面量）实测 8/8 全是 WebVPN**（清一色 `vpn.*` / `*.vpn.*` 域名）—— **第五轮进一步定性为「同一款国产 SSL VPN」**，硬判据：`/com/js/common.min.js` + `/com/common.js` + **`/com/64sys.js`**、HTML 注释 **`<!-- 旧方案 -->` / `<!-- 新方案 -->`**、JS 变量 **`is_old_solution`** / **`g_midatk`**（中间人攻击自检）/ `selectline_timeout`（多线路选路）、正文 `alert(tr("您访问的SSL VPN系统正受到中间人攻击(SSL Strip攻击)..."))`、开发者注释 `luyi 20120223`（2012 年代码）。第五轮实测 6 站同套：`vpn1.**.edu.cn:4433` / `webvpn.**.edu.cn` / `vpn.**.edu.cn:8080` / `vpn1.**.edu.cn` / `www.vpn.**.edu.cn` / `vpn.**.edu.cn:4433`（响应体 7177~9133 B），另 `navi-cnki-net-s.vpn.**.edu.cn` 亦 `Server: Server`（**厂商名未确证**）；**第 3 款 WebVPN：`Server: appframe` + `/vpn/theme/auth_home.html`**（实测 `webvpn.**.edu.cn`，搜索印证 `vpn.**.edu.cn` 同路径）；`/users/sign_in` + `_astraeus_session`（Rails/Devise 栈，代号 Astraeus；**2026-09-16 交叉印证为多校同款产品**：urlscan 存档显示 `webvpn.**.edu.cn` / `webvpn.**.edu.cn` / `webvpn.**.edu.cn` / `webvpn.**.ac.cn` / `webvpn.**.cn` 同款登录页 + `SERVERID=Server1/Server2` —— **不是单校自研，是通用产品，厂商中文名仍未公开确证**）；自研 `/go?http://`、`/vpn_key/update` | **Sangine 网关（厂商未确证）/ Astraeus / 自研 WebVPN** | 先只做到识别。**⚠️ 关键澄清**：`Server: none` 与 `Server: Server` 都是**网关把 Server 头写错**（是字面量，不是「无 Server 头」），**不能单独定性** —— `Server: none` 实测 **28 站**，跨**网瑞达 10 站 + 金智 / 正方 / CAS 等认证网关 18 站**，必须结合 cookie / Location 判断 |
+| **WebVPN · 其他实现**：`Server: Sangine` + 端口 **`:8118`** + 跳转 `vpn.<域名>?redirect_uri=<原URL>` 或 `/controller/v1/public/verify?t=<JWT>`（JWT 内含 `gateway_ip` / `client_ip`）；**`Server: Server`（字面量）实测 8/8 全是 WebVPN**（清一色 `vpn.*` / `*.vpn.*` 域名）—— **第五轮进一步定性为「同一款国产 SSL VPN」**，硬判据：`/com/js/common.min.js` + `/com/common.js` + **`/com/64sys.js`**、HTML 注释 **`<!-- 旧方案 -->` / `<!-- 新方案 -->`**、JS 变量 **`is_old_solution`** / **`g_midatk`**（中间人攻击自检）/ `selectline_timeout`（多线路选路）、正文 `alert(tr("您访问的SSL VPN系统正受到中间人攻击(SSL Strip攻击)..."))`、开发者注释 `luyi 20120223`（2012 年代码）。第五轮实测 6 站同套；**第七轮再补 3 站**（`ivpn.**.edu.cn` / `newvpn.**.edu.cn` / `vpn.**.edu.cn`，均命中 `Server: Server` + `g_midatk`），**累计 9 站**：`vpn1.**.edu.cn:4433` / `webvpn.**.edu.cn` / `vpn.**.edu.cn:8080` / `vpn1.**.edu.cn` / `www.vpn.**.edu.cn` / `vpn.**.edu.cn:4433`（响应体 7177~9133 B），另 `navi-cnki-net-s.vpn.**.edu.cn` 亦 `Server: Server`（**厂商名未确证**）。**⚠️ 第七轮认知（重要）：网关 / 客户端 / 认证源可以是三家不同厂商，别交叉推断** —— `vpn.**.edu.cn` 实测是这款国产 SSL VPN（命中 `g_midatk`），但该校官网《VPN 使用指南》提供的客户端是 **EasyConnect（深信服产品）**、账号体系是**锐捷账号**。三个环节分属三家：**判网关只认网关自己的指纹（Server 头 / JS 变量 / 路径），不能用客户端型号或账号体系反推**；**第 3 款 WebVPN：`Server: appframe` + `/vpn/theme/auth_home.html`**（实测 `webvpn.**.edu.cn`，搜索印证 `vpn.**.edu.cn` 同路径）；`/users/sign_in` + `_astraeus_session`（Rails/Devise 栈，代号 Astraeus；**2026-09-16 交叉印证为多校同款产品**：urlscan 存档显示 `webvpn.**.edu.cn` / `webvpn.**.edu.cn` / `webvpn.**.edu.cn` / `webvpn.**.ac.cn` / `webvpn.**.cn` 同款登录页 + `SERVERID=Server1/Server2` —— **不是单校自研，是通用产品，厂商中文名仍未公开确证**）；自研 `/go?http://`、`/vpn_key/update` **待定性（第七轮）**：cookie `bzb_jsxsd` 在 `jwx.**.edu.cn` 稳定复现（root 仅 142 B，疑似纯跳转页）。`bzb_` 前缀 + `jsxsd` 路径疑似**强智教务**特征，但**仅 1 个样本，按纪律不写指纹**，需再找 1~2 个同款确认。（教务类系统 root 常返回极小响应体，探根时别因体积小就判「无指纹」—— 要跟一跳或直接打 `/jsxsd` 路径。）**| | **Sangine 网关（厂商未确证；2026-09-16 新增 1 样本 `zfjw.**.edu.cn`，`Server: Sangine` 且 root 返 404 —— 说明它是**前置网关/反代**而非业务系统本身，别把 404 当成站挂了**）/ Astraeus / 自研 WebVPN** | 先只做到识别。**⚠️ 关键澄清**：`Server: none` 与 `Server: Server` 都是**网关把 Server 头写错**（是字面量，不是「无 Server 头」），**不能单独定性** —— `Server: none` 实测 **28 站**，跨**网瑞达 10 站 + 金智 / 正方 / CAS 等认证网关 18 站**，必须结合 cookie / Location 判断 |
 | **图书馆电子资源 ERMS（第五轮新证，新厂商）**：`/ermsLogin/SSOLogin.do?msgcode=login_valid`、`/ermsLogin/view.do?msgcode=login_valid`、`/ermsClient/home.do`、**`Set-Cookie: CWJSESSIONID`**（`CW` = 创文）、页面底部署名 **「©北京创文科技有限公司」**、域名形如 `libproxy.*` / `dbproxy.*` / `eds.*` | **北京创文科技有限公司 · 图书馆电子资源管理平台（ERMS）** —— 高校图书馆「校内外统一访问电子资源」入口 | 实测 2 站：`cw.**.edu.cn`、`libproxy.**.edu.cn`；**⚠️ 2026-09-16 反例（归入「域名语义 ≠ 产品」）：`libproxy.**.edu.cn:8080` 域名看着像图书馆代理，实测 `Server: squid/5.8` + 400 —— 是自建 squid 反代，不是任何商业代理产品。认厂商只看技术栈指纹（Server 头 / cookie / 路径 / 响应体），域名前缀只能用来猜、不能用来定。**搜索印证同款另见 `dbproxy.**.edu.cn`、`eds.**.edu.cn`、`res.**.org.cn`。**⚠️ 这是「资源代理」型入口，与 WebVPN 同属「通往内网 / 授权资源的路」**：① `SSOLogin.do` / `view.do` 的 `msgcode` 参数做**越权 / 逻辑绕过**探测；② `ermsClient` 系列 `.do` 接口（Struts 风格）试**未授权访问 / 目录遍历**；③ 与学校统一认证对接处看 `ticket` / `token` 能否伪造 |
 | `/jwglxt/xtgl/login_slogin.html`、`/xtgl/login_slogin.html`、title「教学管理信息服务平台」、**`X-Powered-By: ZFSOFT-SERVER`**（Servlet/3.0 JSP/2.2）、`/jsxsd/`（老版） | **正方教务**（新版 `/jwglxt/`，老版 `/jsxsd/`） | 越权、注入、默认口令。**新版特有**：`X-Powered-By` 直接吐 `ZFSOFT-SERVER` 与 JDK 版本；老版认 `/jsxsd/`。学工侧（`xgxt/`）另有一套：`commXszz.do?method=uploadFile` 上传 getshell、`xgxt/mmzhgl_mmzh.do?method=xgmm&yhm=zf01` 重置内置超管 |
 | `URP`、`emap.js`、`bh.min.js`、`WIS_CONFIG`、`schoolId=`、`.do` 接口 | **强智 URP / BH 框架**（教务、研究生） | 越权、注入。**注意：`/jwglxt/` 是正方不是强智**，别混 |
@@ -145,6 +145,10 @@ PY=~/.workbuddy-ai/binaries/python/versions/3.13.12/python.exe
 **不用穿透的情况**：只挖 Web 层漏洞（注入/越权/逻辑）时，**CDN 不影响**，直接打域名就行。
 **必须穿透的情况**：要打**端口/服务/中间件**（Redis、MySQL、Shiro、Fastjson、Nacos）时——扫 CDN 节点没意义。
 
+> ⚠️ **本表只回答"有没有 CDN"。判"是哪家平台"必须看 CNAME 后缀（§2.5）。**
+> 「多 IP」「IP 归属」只能**提示**"有 CDN"，**不能定平台**，**更不能**当"这台是独立源站 / 这台资产存在"的证据 ——
+> CDN 多节点会让同一条 CNAME 两次解析出不同 IP，实测曾据此**误判 8 台**。
+
 ### 2.2 穿透找源站（按成功率排序）
 
 1. **子域直连**（最高性价比）：CDN 通常只配 `www` 和 `@`。试这些子域的 A 记录：
@@ -196,6 +200,23 @@ curl -i --noproxy '*' -H "Host: 目标域名" http://候选IP/
 - 「多 IP = 有 CDN」不成立，有些源站本身就是多 IP 负载均衡
 - 子域拿到 IP 就当源站 → 必须先 Host 头验证
 
+### 2.5 认边缘平台：**只看 CNAME 后缀，不看 IP**（2026-09-18 补 · 十四轮实测）
+
+**为什么不能看 IP：** CDN 多节点，**同一条 CNAME 两次解析会得到完全不同的 IP**（实测同一主机两次分别得 `36.x` 与 `1.x`）—— 曾用"IP 集合"判据一次**误判 8 台**为"独立源站"。**IP 判据在 CDN 下永久不可用。**
+
+| CNAME 后缀 | 平台 | 附带判据 |
+|---|---|---|
+| `*.eo.dnse0.com` | 腾讯 **EdgeOne** | `server: openresty+`（频道类）/ `TencentEdgeOne`（应用类） |
+| `*.f1.zlibs.com` | **网宿**系（泛记录与独立记录**都可能是它**） | 泛记录形态 = `{根域}.f1.zlibs.com`（统一指向） |
+| `*.txlivecdn.com` | 腾讯云**直播** CDN | `server: MC_VCLOUD_LIVE` |
+| `*.w.kunlunca.com` | **阿里云** CDN（Kunlun） | `server: Tengine` + `via: cache*.l2cn*` |
+| `ksyun-*` | **金山云** | — |
+| `*.myqcloud.com` / 404 带 `AccessDenied` | 腾讯云 **COS** | — |
+
+**用法：** ① 先 `dig CNAME`（或 `nslookup -type=CNAME`）拿后缀 → 直接定平台；② **泛记录 vs 独立记录**是**两个不同结论**（见 §3.3）；③ 想判整族是不是泛记录，看这一族的 CNAME 是否**统一指向同一条**。
+
+⚠️ **对照组纪律：** 判泛解析与平台归属时，务必同时取**另一个根域**做对照（确认它**没有**泛解析），否则会把平台行为当成自己的发现。
+
 ---
 
 ## §3 泛解析判定与过滤
@@ -223,6 +244,16 @@ dig zzz-random-9x7a3f.target.com +short
 
 **每层都要单独判**：`*.target.com`、`*.a.target.com`、`*.dev.target.com` 各判一次。
 
+**⚠️ 2026-09-18 补 · 泛解析下【失效】与【更凶】的两件事：**
+
+| 情况 | 说明 |
+|---|---|
+| **「不解析 / NXDOMAIN ⇒ 没这台」整体失效** | 泛解析下**不存在"不解析"的名字** —— 任何名字都解析成功。这个否证信号**永久不能用** |
+| **泛解析的默认 vhost 还会回 403** | 比"回默认页"更凶：403 极易被误读成「**资产受保护 ⇒ 高价值后台**」。实测该 403 与**随机不可存在主机名**的响应体 **SHA1 逐字节同源** |
+| **TLS 握手失败 ≠ 主机不可达** | 实际是**无站点证书** ⇒ **确证未配置**（这是**正向**证据，比 404 更可信） |
+
+> 判定到「`403` 到底意味着什么」这一层，见 §3.3 第二层 + `rules/asset-existence-and-coverage.md`。
+
 ### 3.3 过滤（两层，缺一不可）
 
 **第一层：DNS 层 —— 建泛解析 IP 黑名单**
@@ -243,21 +274,58 @@ print('泛解析 IP 黑名单:', ips)
 
 爆破结果里 **IP 在这个集合中的，标记为疑似垃圾**。
 
-**第二层：HTTP 层 —— 用内容二次确认（这层才是关键）**
+**第二层：HTTP 层 —— 用内容二次确认（这层才是关键 · 2026-09-18 升级为「双轨四象限」）**
 
 **泛解析 IP 上也可能跑着真实业务**（靠 vhost 区分）。只按 DNS 层过滤会**丢掉真实资产**。
 
-做法：对 DNS 层标疑似的子域，发 HTTP 请求，和随机子域的响应对比：
+**⚠️ 状态码完全不可信**（十四轮里被 403 / 404 / 200 **各骗一次**）：
+`403` ≠ 受保护（默认 vhost 也回 403）；`404` ≠ 不存在（**真站点就藏在 404 后面**）；`200` ≠ 有内容（可能是**软 404**，返回通用错误模板）。
+
+**做法（必须取两条基线、必须逐字节比对）：**
 
 ```
-基准 A = 随机不存在子域的响应（title + body 长度 + body md5）
-候选 B = 待判子域的响应
+基线①（主机级）= 随机生成、绝不可能存在的主机名 zzz-<16位随机>.<根域> 的 GET /
+基线②（路径级）= 待判 host 上一个必然不存在的路径的 GET /
+候选 = 待判子域的 GET /
 
-B 与 A 完全相同  → 垃圾，丢
-B 与 A 不同      → 真站，留（哪怕 IP 在黑名单里）
+sha1(body[候选])  ≠ 两条基线   → ✅ 确证存在（真站，留；哪怕状态码是 404/403/502）
+sha1(body[候选])  = 基线①      → 未登记 / 走默认 vhost（丢）
+sha1(body[候选])  = 基线② ≠ ① → 走默认源站，存在性不确定
 ```
 
-**对比维度**（按可靠度）：body 的 md5 > title > 响应长度 > 状态码。长度会抖，优先用 md5。
+**对比维度（硬）：`sha1(整个 body)` 逐字节。**
+❌ **不要**用"`body md5 > title > 响应长度 > 状态码"这套降级排序 —— 长度会抖，**关键词匹配更会必然误中**（实测用 `sf-reset` / `Exception` 判框架，该串本就在框架默认 404 模板里）。
+
+**⚠️ 基线必须同批实时取得**：禁止硬编码历史哈希、禁止跨天取、禁止从旧报告抄。
+
+**再判 CNAME（辅助判据）：**
+
+```
+独立记录（{host}.<cdn 域>）  →  已被边缘【显式登记】（不证明后面有应用）
+泛记录（{根域}.<cdn 域>）    →  【不可判定】（≠ 不存在）
+```
+
+**两个方向的反例（别把判据用反）：**
+
+| 反例 | 打破了什么 |
+|---|---|
+| 泛记录 **+** 框架异常页（Symfony/Laravel 报错页） | 打破「泛记录 ⇒ 不存在」 |
+| 独立记录 **+** 默认源站页 | 打破「独立记录 ⇒ 有应用」 |
+
+⇒ **CNAME 判据是"充分不必要"** —— 只回答"被登记了吗"，不回答"后面有东西吗"。
+
+**四象限：**
+
+| CNAME | 响应体 | 结论 |
+|---|---|---|
+| 独立记录 | 异形 | ✅ **确证存在** |
+| 独立记录 | 默认页 | 🟡 已被边缘登记，**无独立后端** |
+| 泛记录 | **异形** | ✅ **确证存在**（单凭响应体即可定案） |
+| 泛记录 | 默认页 | ⚠️ **不可判定**（≠ 不存在） |
+
+⚠️ **第四象限措辞是硬约束**：泛记录**不能排除**厂商以「泛域名 + 按 Host 回源规则」提供服务（该方式**不改 DNS**）→ 只能写**"不可判定"**，**禁止**写"不存在"，**禁止**在提交材料里声称"资产真实存在"。
+
+> **完整判据、覆盖率账本与判据留痕制度见 `rules/asset-existence-and-coverage.md`。**
 
 ### 3.4 和 SPA catch-all 的区别（别混）
 
@@ -281,17 +349,18 @@ B 与 A 不同      → 真站，留（哪怕 IP 在黑名单里）
 ```
 [ ] 指纹：title / body 特有串 / Cookie 名 / JS 名 / favicon → 对照 §1.3 表定打法
 [ ] favicon hash 反查同套系统（§1.4）
-[ ] 判 CDN：CNAME + 响应头 + 多 IP（§2.1）
+[ ] 判 CDN：**只看 CNAME 后缀**（§2.1 / §2.5），❌ 不用 IP 判归属
 [ ] 要打端口/中间件 → 穿透找源站（§2.2），拿到后 Host 头验证（§2.3）
-[ ] 判泛解析：随机子域 + 逐层判（§3.1/3.2）
+[ ] 判泛解析：随机子域 + 逐层判（§3.1/3.2）；**另取一个对照组根域**（确认它没泛解析）
+[ ] **取两条基线**：主机级（随机不可存在主机名）/ 路径级（不存在路径）—— §3.3 / `batch-verify-discipline` §1.1
+[ ] **逐台判存在性**：`sha1(body)` 逐字节比对 → 四象限定论（§3.3）；**状态码不可信**
 [ ] 子域列表过两层过滤（§3.3）
-[ ] 打之前先排除 SPA catch-all / WAF 拦截页假阳性
+[ ] **落资产账本**：每台一行，`判定` 列只填 `确证存在`/`已被边缘登记·无后端`/`不可判定`/`确证未配置`，收工前不许有空缺
+[ ] 打之前先排除 SPA catch-all / WAF 拦截页 / **软 404（200 + 通用错误页）** 假阳性
 ```
 
 ## §5 一句话
 
 **指纹决定打法，CDN 决定能不能打端口，泛解析决定子域列表能不能用。** 这三件没做就开打，等于闭眼扔飞镖。
 
-20120223`（2012 年代码）。第五轮实测 6 站同套；**第七轮再补 3 站**（`ivpn.**.edu.cn` / `newvpn.**.edu.cn` / `vpn.**.edu.cn`，均命中 `Server: Server` + `g_midatk`），**累计 9 站**：`vpn1.**.edu.cn:4433` / `madagascar.vpn.**.edu.cn` / `vpn.**.edu.cn:8080` / `vpn1.**.edu.cn` / `www.vpn.**.edu.cn` / `vpn.**.edu.cn:4433`（响应体 7177~9133 B），另 `navi-cnki-net-s.vpn.**.edu.cn` 亦 `Server: Server`（**厂商名未确证**）。**⚠️ 第七轮认知（重要）：网关 / 客户端 / 认证源可以是三家不同厂商，别交叉推断** —— `vpn.**.edu.cn` 实测是这款国产 SSL VPN（命中 `g_midatk`），但该校官网《VPN 使用指南》提供的客户端是 **EasyConnect（深信服产品）**、账号体系是**锐捷账号**。三个环节分属三家：**判网关只认网关自己的指纹（Server 头 / JS 变量 / 路径），不能用客户端型号或账号体系反推**；**第 3 款 WebVPN：`Server: appframe` + `/vpn/theme/auth_home.html`**（实测 `webvpn.**.edu.cn`，搜索印证 `vpn.**.edu.cn` 同路径）；`/users/sign_in` + `_astraeus_session`（Rails/Devise 栈，代号 Astraeus；**2026-09-16 交叉印证为多校同款产品**：urlscan 存档显示 `webvpn.**.edu.cn` / `webvpn.**.edu.cn` / `webvpn.**.edu.cn` / `webvpn.**.ac.cn` / `webvpn.**.cn` 同款登录页 + `SERVERID=Server1/Server2` —— **不是单校自研，是通用产品，厂商中文名仍未公开确证**）；自研 `/go?http://`、`/vpn_key/update` **待定性（第七轮）**：cookie `bzb_jsxsd` 在 `jwx.**.edu.cn` 稳定复现（root 仅 142 B，疑似纯跳转页）。`bzb_` 前缀 + `jsxsd` 路径疑似**强智教务**特征，但**仅 1 个样本，按纪律不写指纹**，需再找 1~2 个同款确认。（教务类系统 root 常返回极小响应体，探根时别因体积小就判「无指纹」——
-
-."))`、开发者注释 `luyi 20120223`（2012 年代码）。第五轮实测 6 站同套；**第七轮再补 3 站**（`ivpn.**.hitwh` / `newvpn.**.cumt` / `vpn.**.dlpu`，均命中 `Server: Server` + `g_midatk`），**累计 9 站**：`vpn1.**.succ:4433` / `madagascar.vpn.**.cqepc` / `vpn.**.sgmart:8080` / `vpn1.**.sit` / `www.vpn.**.gxu` / `vpn.**.muhn:4433`（响应体 7177~9133 B），另 `navi-cnki-net-s.vpn.**.dufe` 亦 `Server: Server`（**厂商名未确证**）。**⚠️ 第七轮认知（重要）：网关 / 客户端 / 认证源可以是三家不同厂商，别交叉推断** —— `vpn.**.dlpu` 实测是这款国产 SSL VPN（命中 `g_midatk`），但该校官网《VPN 使用指南》提供的客户端是 **EasyConnect（深信服产品）**、账号体系是**锐捷账号**。三个环节分属三家：**判网关只认网关自己的指纹（Server 头 / JS 变量 / 路径），不能用客户端型号或账号体系反推**；**第 3 款 WebVPN：`Server: appframe` + `/vpn/theme/auth_home.html`**（实测 `webvpn.**.hlju`，搜索印证 `vpn.**.cqwu` 同路径）；`/users/sign_in` + `_astraeus_session`（Rails/Devise 栈，代号 Astraeus；**2026-09-16 交叉印证为多校同款产品**：urlscan 存档显示 `webvpn.**.shu` / `webvpn.**.cueb` / `webvpn.**.blcu` / `webvpn.**.iccas` / `webvpn.cams.cn` 同款登录页 + `SERVERID=Server1/Server2` —— **不是单校自研，是通用产品，厂商中文名仍未公开确证**）；自研 `/go?http://`、`/vpn_key/update` **待定性（第七轮）**：cookie `bzb_jsxsd` 在 `jwx.**.dgut` 稳定复现（root 仅 142 B，疑似纯跳转页）。`bzb_` 前缀 + `jsxsd` 路径疑似**强智教务**特征，但**仅 1 个样本，按纪律不写指纹**，需再找 1~2 个同款确认。（教务类系统 root 常返回极小响应体，探根时别因体积小就判「无指纹」—— 要跟一跳或直接打 `/jsxsd`
+**判存在性只看响应体：`403` / `404` / `200` 都会骗人，`sha1(body)` 与同批实时双基线差多少才是真相。判不出就写「不可判定」，并落资产账本 —— 账本清零才叫测完。**（`rules/asset-existence-and-coverage.md`）
