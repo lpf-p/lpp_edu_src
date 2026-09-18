@@ -59,7 +59,7 @@ agent_created: true
 | `verdict-states` | `rules/verdict-states.md` | **判定状态词（五个）+ 三层确认门 + 反早闭 `unruled_out`**（要给一个点下结论 / 写报告前必读；产出属判据、**不受漏洞门槛约束**） |
 | `playwright-browser-mcp` | `rules/playwright-browser-mcp.md` | 浏览器走 `agent-browser` |
 | `test-scope-boundary` / `test-scope` | `rules/test-scope-boundary.md` | **各类漏洞的最大测试范围与停止线**（动手前查：测到哪算到底、越过就出事；含 EDUSRC 不挖清单） |
-| `sweep-tools` | `tools/README.md` | **批量探根 / 指纹分类 / 跟一跳验证脚本**（判据表外置 `tools/fingerprint_markers.py`；认入口类资产必配，纪律：只 GET、不带凭据、限 4 跳） |
+| `sweep-tools` | `tools/README.md` | **判存在性 / 批量探根 / 指纹分类 / 跟一跳验证脚本**（判据表外置 `tools/fingerprint_markers.py`；**第 -1 步 `tools/probe_existence.py` 配套 `asset-existence-and-coverage`**；认入口类资产必配，纪律：只 GET、不带凭据、限 4 跳） |
 
 冲突时：挖什么 → `src-value`；报告 → 只跟 `vuln-report-format`；CORS 不挖 → `cors-vuln-report-priority`；白盒 → `researcher-blackbox-whitebox`；**范围/持续挖** → **`dig-scope-workflow`（压过「等继续」）**；**批量探测判据** → `batch-verify-discipline`；**资产存在性与「测完」判据** → `asset-existence-and-coverage`；**判定状态与反早闭** → `verdict-states`；**能力迭代落盘** → `hunt-iter`（不压过范围）。
 **skill / 知识库** 与 rules 冲突 → **以 rules 为准**（尤其 `知识库/cors-test.md` 仅资料、SRC 禁用）。
@@ -86,7 +86,7 @@ agent_created: true
 
 | 病 | 药 | 落点 |
 |---|---|---|
-| 把不存在的资产当资产打（**方向错**） | **进站前先判存在性**：响应体 `sha1` vs **同批实时双基线**（主机级 + 路径级）→ 四象限定论。**状态码不可信**：403/404/200 都会骗人 | `asset-existence-and-coverage` §1~§5 |
+| 把不存在的资产当资产打（**方向错**） | **进站前先判存在性**：响应体 `sha1` vs **同批实时双基线**（主机级 + 路径级）→ 四象限定论。**状态码不可信**：403/404/200 都会骗人。⚠️ **「异形」只是候选**——还须排除**门闸页**（WAF JS 挑战 / 5 秒盾：无 title + Server 掩码 + 混淆 script + webdriver）才写「确证存在」 | `asset-existence-and-coverage` §1~§5；脚本 `tools/probe_existence.py` |
 | 说不清"测完了没有"（**收不了工**） | **建资产账本**：每台一行，`判定` 列只允许四值且**不许有空缺**；**"存在"与"测过"分列** | 同上 §6「收工三联」 |
 | 判据用错还静默改口（**下次重踩**） | **判据留痕**：失败版脚本**不删**、判据演进成文、改结论必须写"原判 X 因 Y 改 Z" | 同上 §7 |
 | 把范围外的引用也打了（**越界**） | 「页面在范围内」≠「页面引用的主机也在范围内」→ **只登记、零请求** | 同上 §8 |
@@ -310,5 +310,6 @@ JS 逆向细节 → `知识库/js-reverse-guide.md`。打开目标按 `dig-scope
 | 浏览器 | `playwright-dual-slot.mjs` 双槽 Playwright MCP | 内置 `agent-browser` 技能 |
 | FOFA 资产搜索 | `~/.grok` 无（原靠 MCP） | **fofa.info 网页手动跑**（语法见 `知识库/recon-methodology.md` + 各案例库）；无 key 可用，无配额走 DNS+HTTP+crt 兜底 |
 | 路径引用 | `~/.grok/...` | 已全部改写为本技能根目录绝对路径 |
+| **本机 MCP 清单与合规分级** | 无（原靠 `jshookmcp` 一类外部包） | **`mcp-servers/能力索引.md`（仅本地副本有）** —— 记本机 7 个 MCP 的实测状态与红线：`tianhu`（天狐，50 个攻击/后渗透工具）在 edu SRC 语境**整体禁用**，只在 `rules-local/authorized-pt-playbook.md` 授权 PT 语境用；`yakit` 的 `query_http_flow` 读**本地历史流量**是本机**最合规**的情报源（零新流量） |
 
 用法、目录说明与红线见 `README.md`。

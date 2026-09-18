@@ -102,7 +102,7 @@ lpp_edu_src/
 ├── 知识库/                     # 90 份专题：打法 + 案例库提炼 + 厂商系统速查
 ├── tools/                      # 批量探根 / 指纹分类 / 跟一跳验证脚本（判据表外置）
 ├── check_desensitize.py        # push 前自检：公开版是否残留未打码的活目标
-├── mcp-servers/                # 可选 MCP 定义（存档，不参与运行）
+├── mcp-servers/                # 本机 MCP 能力索引（本地专用，不进公开版）
 └── reference/                  # 仅存档，不参与运行
 ```
 
@@ -131,6 +131,7 @@ python check_desensitize.py . --update-baseline  # 首次 / 大改后定基（�
 
 ## 五、最近更新
 
+- **2026-09-19**：**新增 `tools/probe_existence.py`**（第 -1 步 判存在性：双轨四象限 + **门闸页四联征排除**；配套 `asset-existence-and-coverage.md`，10 台真机验证）。**`asset-existence-and-coverage.md` 增第 4 条禁令**——由一次实战假阳性总结：**9 台主机（`www` + 8 个院系/职能站）状态 200、SHA1 两两各异，初判"确证存在"，实为同一套 WAF JS 挑战页**（`_0x…` 混淆 + `navigator.webdriver` + `Server: ******` + 无 `<title>`）。据此：判定表「异形」**降级为候选**、判定列**增第 5 个允许值「存在但被门闸挡住」**、§3 由三条禁令扩为四条、§0 一句话与 §10 时间线同步。**核心一句：`sha1` 各异 ≠ 有后端 —— 门闸页按 Host 定制，故意让每台都看着"异形"。**
 - **2026-09-18（补）**：**新增 `rules/verdict-states.md`**（判定状态词五个 + 三层确认门 + 反早闭 `unruled_out`）+ **`dig-state.json` 断点续跑**（`desktop-task-folder` §1.2）+ **功能点 12 维反查**（`dig-scope-workflow` §4.1.4）。来源：对标一个外部的授权渗透工作台 skill 后吸收，补上本技能原来缺的**假阴性那一半** —— `batch-verify-discipline` 管「别把假的当成真的」（假阳性），`verdict-states` 管「**别把真的漏了、还当测完了**」（假阴性）。同步：`vuln-report-format` §二 增「判定状态 / 盲区去哪」两行、明确**只有 `confirmed` 落盘**；`desktop-task-folder` 开新任务必须建 `dig-state.json`（⛔ 凭据实值不进）；`hunt-iter` 明确判定类产出同样**不受漏洞门槛约束**；`dig-scope-workflow` §4.3 加两条换站下限 + §5 自检两条。**核心一句：一个点测完只有五种说法，只有 `confirmed` 进报告正文，标 `not_vulnerable` 必须先写 `unruled_out`。**
 - **2026-09-18**：**新增 `rules/asset-existence-and-coverage.md`**（资产存在性判据「双轨四象限」+ 覆盖率账本 + 判据留痕制度 + 范围判定）—— 由一次十四轮实战被动总结：历轮最值钱的产出全在**判据层**，却因 `hunt-iter` 门槛只收"已落报告的高危/严重"而**一条都进不了库**，导致"用了 skill 反而更浅"。据此同步：`hunt-iter` 明确**判据类产出不受漏洞门槛约束**；`dig-scope-workflow` §4.0 增「第 -1 步 判存在性」+ §0.1「锁面必建资产账本」+ §5 自检两条；`batch-verify-discipline` §1.1 增**主机级基线**；`知识库/recon-fingerprint-cdn-wildcard.md` §2.5 新增「认平台只看 CNAME 后缀」+ §3.2/§3.3 升级为双轨四象限。**核心一句：状态码完全不可信（403/404/200 各被骗一次），只认响应体 `sha1` 与同批实时双基线的比对结果。**
 - **2026-09-16**：新增 `tools/` 四个脚本（批量探根 / 指纹分类 / 跟一跳验证，判据表外置到 `fingerprint_markers.py`）；`知识库/recon-fingerprint-cdn-wildcard.md` §1.3 补入 30 站实测校准的入口类判据——**root 只回 301/302 时厂商信息在跳转后的登录页上，必须跟一跳**（实测未定性站跟跳后 44% 拿到判据，但仍不充分）；补金智三个新判据、`Server: Server` = 同一款国产 SSL VPN 的硬判据。
